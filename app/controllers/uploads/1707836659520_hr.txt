@@ -1,0 +1,365 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Conveyance and Allowance</ion-title>
+    <ion-buttons class="hidden-sm-down" slot="end">
+      <ion-button
+        color="dark"
+        style="font-weight: 300; width: 150px; font-size: 14px"
+        (click)="createConveyance()"
+      >
+        <ion-icon name="ticket-outline"> </ion-icon>Create Conveyance
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div style="padding-bottom: 0px; overflow: auto; padding-top: 10px">
+    <ion-grid>
+      <ion-row style=" text-align: center; font-weight: bold">
+        <ion-col class="ion-col-header">Conveyance Id</ion-col>
+        <ion-col class="ion-col-header">Employee Name</ion-col>
+        <ion-col class="ion-col-header">Date</ion-col>
+        <ion-col class="ion-col-header">Total Amount</ion-col>
+        <ion-col class="ion-col-header">Status</ion-col>
+        <ion-col class="ion-col-header">Reason</ion-col>
+      </ion-row>
+      <ion-row *ngFor="let item of allConveyance" style="text-align: center">
+        <ion-col class="ion-col-item"
+          ><a style="cursor: pointer" (click)="displayData(item)"
+            >{{item.convinceAndCalm_Id}}</a
+          ></ion-col
+        >
+        <ion-col class="ion-col-item">{{item.employeeName}}</ion-col>
+        <ion-col class="ion-col-item"
+          >{{item.cdate | date : 'dd MMM, yyyy'}}</ion-col
+        >
+        <ion-col class="ion-col-item">{{item.totalAmount}}</ion-col>
+       
+
+        <ion-col class="ion-col-item" [ngStyle]="getStatusColor(item.status)"
+          >{{item.status}}</ion-col
+        >
+        <ion-col class="ion-col-item">{{item.reason}}</ion-col>
+      </ion-row>
+    </ion-grid>
+
+    <!-- create Modal -->
+    <ion-modal [isOpen]="isModalOpen" backdropDismiss="false">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>Create Conveyance</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="close()">Close</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <ion-row *ngFor="let value of values;let i=index" class="modalForm">
+            <form #createForm="ngForm">
+              <ion-row>
+                <ion-col sizeMd="1.5" sizeSm="1.5" sizeXs="1.5">
+                  <ion-item>
+                    <ion-label position="stacked">
+                      From <span style="color: red">*</span></ion-label
+                    >
+                    <ion-input
+                      type="text"
+                      #from="ngModel"
+                      [(ngModel)]="value.from"
+                      [ngModelOptions]="{standalone: true}"
+                      minlength="5"
+                      maxlength="10"
+                      name="from"
+                      required
+                      placeholder="Enter Source"
+                    ></ion-input>
+                    <span
+                      *ngIf=" from.invalid && from.touched"
+                      style="color: red"
+                      >Source is Required!</span
+                    >
+                  </ion-item>
+                </ion-col>
+                <ion-col sizeMd="1.5" sizeSm="1.5" sizeXs="1.5">
+                  <ion-item>
+                    <ion-label position="stacked">
+                      To <span style="color: red">*</span></ion-label
+                    >
+                    <ion-input
+                      type="text"
+                      #whereTo="ngModel"
+                      [ngModelOptions]="{standalone: true}"
+                      [(ngModel)]="value.whereTo"
+                      placeholder="Enter Destination"
+                      name="whereTo"
+                      required
+                    ></ion-input>
+                    <span
+                      *ngIf=" whereTo.invalid && whereTo.touched"
+                      style="color: red"
+                      >Destination is Required!</span
+                    >
+                  </ion-item>
+                </ion-col>
+                <ion-col sizeMd="1.5" sizeSm="1.5" sizeXs="1.5">
+                  <ion-item>
+                    <ion-label position="stacked">
+                      Vehicle Type <span style="color: red">*</span></ion-label
+                    >
+                    <select
+                      value="value{{i}}"
+                      [(ngModel)]="value.vehicleType"
+                      #vehicleType="ngModel"
+                      [ngModelOptions]="{standalone: true}"
+                      name="vehicleType"
+                      required
+                    >
+                      <option value="" disabled>Select</option>
+
+                      <option value="bike">Bike</option>
+                      <option value="auto">Auto</option>
+                      <option value="car">Car</option>
+                      <option value="car">Cab</option>
+                      <option value="car">Metro</option>
+                    </select>
+                    <span
+                      *ngIf=" vehicleType.invalid && vehicleType.touched"
+                      style="color: red"
+                      >Vehicle Type is Required!</span
+                    >
+                  </ion-item>
+                </ion-col>
+                <ion-col sizeMd="1.5" sizeSm="1.5" sizeXs="1.5">
+                  <ion-item>
+                    <ion-label position="stacked">
+                      Date <span style="color: red">*</span></ion-label
+                    >
+                    <ion-input
+                      type="date"
+                      #travelDate="ngModel"
+                      [ngModelOptions]="{standalone: true}"
+                      [(ngModel)]="value.travelDate"
+                      name="travelDate"
+                      (ionChange)="onTravelDateChange($event)"
+                      required
+                    ></ion-input>
+                    <span
+                      *ngIf=" travelDate.invalid && travelDate.touched"
+                      style="color: red"
+                      >Date is Required!</span
+                    >
+                  </ion-item>
+                </ion-col>
+                <ion-col sizeMd="1" sizeSm="1" sizeXs="1">
+                  <ion-item>
+                    <ion-label position="stacked">
+                      Distance <span style="color: red">*</span></ion-label
+                    >
+                    <ion-input
+                      type="text"
+                      #km="ngModel"
+                      [ngModelOptions]="{standalone: true}"
+                      [(ngModel)]="value.km"
+                      placeholder="Enter Distance"
+                      name="km"
+                      onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                      maxlength="4"
+                      minlength="1"
+                      required
+                    ></ion-input>
+                    <span *ngIf=" km.invalid && km.touched" style="color: red"
+                      >Distance is Required!</span
+                    >
+                  </ion-item>
+                </ion-col>
+                <ion-col sizeMd="1" sizeSm="1" sizeXs="1">
+                  <ion-item>
+                    <ion-label position="stacked">
+                      Amount <span style="color: red">*</span></ion-label
+                    >
+                    <ion-input
+                      type="text"
+                      #amount="ngModel"
+                      [ngModelOptions]="{standalone: true}"
+                      [(ngModel)]="value.amount"
+                      placeholder="Enter Amount"
+                      name="amount"
+                      onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                      maxlength="5"
+                      minlength="2"
+                      required
+                    ></ion-input>
+                    <span
+                      *ngIf=" amount.invalid && amount.touched"
+                      style="color: red"
+                      >Amount is Required!</span
+                    >
+                  </ion-item>
+                </ion-col>
+                <ion-col sizeMd="2" sizeSm="2" sizeXs="2">
+                  <ion-item>
+                    <ion-label position="stacked">
+                      Description <span style="color: red">*</span></ion-label
+                    >
+                    <ion-input
+                      type="text"
+                      #comment="ngModel"
+                      [(ngModel)]="value.comment"
+                      [ngModelOptions]="{standalone: true}"
+                      placeholder="Enter Valid Description"
+                      name="comment"
+                      required
+                    ></ion-input>
+                    <span
+                      *ngIf=" comment.invalid && comment.touched"
+                      style="color: red"
+                      >Description is Required!</span
+                    >
+                  </ion-item>
+                </ion-col>
+                <ion-col sizeMd="2" sizeSm="2" sizeXs="2">
+                  <ion-button
+                    color="success"
+                    (click)="addValue()"
+                    class="addRemove"
+                    fill="outline"
+                    size="small"
+                    >Add Row</ion-button
+                  >
+                  <ion-button
+                    color="danger"
+                    (click)="removeValue(i)"
+                    class="addRemove"
+                    fill="outline"
+                    size="small"
+                    *ngIf="i !== 0"
+                    >Remove</ion-button
+                  >
+                </ion-col>
+              </ion-row>
+            </form>
+          </ion-row>
+        </ion-content>
+        <ion-footer style="display: flex; justify-content: flex-end">
+          <ion-button
+            type="submit"
+            style="margin-right: 20px"
+            (click)="onSubmit()"
+            [disabled]="visiblebutton"
+            >Submit</ion-button
+          >
+        </ion-footer>
+      </ng-template>
+    </ion-modal>
+
+    <!-- data display modal -->
+
+    <ion-modal [isOpen]="isDisplayOpen" backdropDismiss="false">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>Conveyance Details </ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="displayClose()">Close</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <ion-grid>
+            <ion-row
+              style="height: 40px; text-align: center; font-weight: bold"
+            >
+              <ion-col class="ion-col-header">Date</ion-col>
+              <ion-col class="ion-col-header">Comment</ion-col>
+              <ion-col class="ion-col-header">Vehicle Tpe </ion-col>
+              <ion-col class="ion-col-header">From </ion-col>
+              <ion-col class="ion-col-header">To</ion-col>
+              <ion-col class="ion-col-header">Distance</ion-col>
+              <ion-col class="ion-col-header">Claim Amount</ion-col>
+            </ion-row>
+            <ion-row
+              *ngFor="let data of singleConveyanceData"
+              style="text-align: center"
+            >
+              <ion-col class="ion-col-item"
+                >{{data.travelDate | date : 'dd MMM, yyyy'}}</ion-col
+              >
+              <ion-col class="ion-col-item">{{data.comment}}</ion-col>
+              <ion-col class="ion-col-item">{{data.vehicleType}}</ion-col>
+
+              <ion-col class="ion-col-item">{{data.from}}</ion-col>
+              <ion-col class="ion-col-item">{{data.whereTo}}</ion-col>
+              <ion-col class="ion-col-item">{{data.km}}</ion-col>
+              <ion-col class="ion-col-item">{{data.amount}}</ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
+  </div>
+</ion-content>
+
+
+
+
+
+
+
+
+////////////////////////////////////////
+          [disabled]="item.status !== 'New' && item.status !== 'Approved'"
+
+Vir@@j@0309#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  {
+    path: 'appraisal',
+    loadChildren: () => import('./pages/appraisal/appraisal.module').then( m => m.AppraisalPageModule)
+  },
+  {
+    path: 'selectEmployee',
+    loadChildren: () => import('./pages/select-emplyee/select-emplyee.module').then( m => m.SelectEmplyeePageModule)
+  },
+  {
+    path: 'my-appraisal',
+    loadChildren: () => import('./pages/my-appraisal/my-appraisal.module').then( m => m.MyAppraisalPageModule)
+  },
+  {
+    path: 'emp-self-evaluation/:id/:status',
+    loadChildren: () => import('./pages/emp-self-evaluation/emp-self-evaluation.module').then( m => m.EmpSelfEvaluationPageModule)
+  },
+  {
+    path: 'assign-manager',
+    loadChildren: () => import('./pages/assign-manager/assign-manager.module').then( m => m.AssignManagerPageModule)
+  },
