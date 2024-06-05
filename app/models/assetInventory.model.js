@@ -54,7 +54,7 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.STRING,
         },
         status: {
-            type: Sequelize.ENUM('RECEIVED', 'IN USE', 'MAINTENANCE','FAULTY', 'SCRAP', 'FAILED', 'IN_QUALITY_CHECK', 'IN_INVENTORY','REJECTED'),
+            type: Sequelize.ENUM('RECEIVED', 'IN USE', 'MAINTENANCE','FAULTY', 'SCRAP', 'FAILED', 'IN_QUALITY_CHECK', 'IN_INVENTORY','REJECTED','DELIVERED'),
             allowNull: false,
             default: 'RECEIVED'
         },
@@ -76,6 +76,9 @@ module.exports = (sequelize, Sequelize) => {
         purchaseId:{
             type:Sequelize.STRING,
             required:true,
+        },
+        deliveryData:{
+            type:Sequelize.DATE
         }
 
 

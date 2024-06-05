@@ -11,6 +11,7 @@ var apiRoutes = express.Router();
 const fs = require('fs');
 const { isNull, concat, entries } = require("lodash");
 const { raw } = require("body-parser");
+const { log } = require("console");
 const category = db.AssetCategory
 const challan = db.AssetChallan
 const engineer = db.AssetEngineer
@@ -913,6 +914,72 @@ app.post('/assign-testing-manager', async (req, res) => {
   } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'An error occurred', error });
+  }
+});
+
+app.post('/delivery-product-list', async (req, res) => {
+  try {
+      const { category } = req.body;
+      let whereClause = { status: 'IN_INVENTORY' };
+
+      if (category) {
+          whereClause.categoryName = category;
+      }
+
+      const inventoryItems = await inventory.findAll({
+          where: whereClause,
+          attributes: ['serialNumber', 'productName', 'status','categoryName']
+      });
+
+      res.status(200).json({"productData":inventoryItems});
+  } catch (error) {
+      console.error('Error fetching inventory items:', error);
+      res.status(500).json({ error: 'An error occurred while fetching inventory items' });
+  }
+});
+
+app.post('/update-delivery-data', async (req, res) => {
+  const { products, substation} = req.body.deliveryDetails;
+  console.log("products",products);
+  console.log("substation",substation);
+  const siteName = substation.siteName;
+  console.log("siteName",siteName);
+  const status = "DELIVERED"
+  
+  if (!products || !Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ error: 'Invalid product data' });
+  }
+
+  if (!siteName) {
+      return res.status(400).json({ error: 'Site name is required' });
+  }
+
+  try {
+      const deliveryDate = new Date();
+
+      for (const product of products) {
+          const { serialNumber, productName} = product;
+
+          if (!serialNumber || !productName) {
+              return res.status(400).json({ error: 'Invalid product data format' });
+          }
+
+          const updated = await inventory.update(
+              { siteName, deliveryDate ,status},
+              { 
+                  where: {
+                      serialNumber,
+                      productName
+                  }
+              }
+          );
+      }
+
+      res.status(200).json({"message":"Data Updated Successfully"});
+
+  } catch (error) {
+      console.error('Error updating inventory:', error);
+      res.status(500).json({ error: 'An error occurred while updating inventory items' });
   }
 });
 
