@@ -24,18 +24,15 @@ module.exports = (sequelize, Sequelize) => {
         },
         siteName: {
             type: Sequelize.STRING,
-            allowNull: false
         },
         quantity:{
             type:Sequelize.INTEGER
         },
         quantityUnit: {
             type: Sequelize.STRING,
-            allowNull: false
         },
         inventoryStoreName: {
             type: Sequelize.STRING,
-            allowNull: false
         },
         storeLocation: {
             type: Sequelize.STRING
@@ -46,7 +43,6 @@ module.exports = (sequelize, Sequelize) => {
         testingResult: {
             type: Sequelize.ENUM('PASS', 'FAIL', 'PENDING'),
             default: 'PENDING',
-            allowNull: false
         },
         testingDate: {
             type: Sequelize.DATE,
@@ -70,11 +66,9 @@ module.exports = (sequelize, Sequelize) => {
         },
         warrantyStartDate: {
             type: Sequelize.DATE,
-            allowNull: false
         },
         warrantyEndDate: {
             type: Sequelize.DATE,
-            allowNull: false
         },
         projectName:{
             type:Sequelize.STRING,

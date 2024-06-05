@@ -131,6 +131,7 @@ module.exports = function (app) {
       res.status(500).json({ message: 'Error fetching categories', error });
     }
   });
+
   app.get('/getCategories', async (req, res) => {
     try {
       const categories = await category.findAll({
@@ -657,6 +658,7 @@ app.post('/asset-sites-dropdown', async (req, res) => {
     res.status(500).json({ message: 'Error fetching sites', error });
   }
 });
+
 app.get('/getSubstations', async (req, res) => {
   try {
     const sites = await site.findAll({
@@ -672,6 +674,7 @@ app.get('/getSubstations', async (req, res) => {
 
 app.post('/asset-inventory-grn', async (req, res) => {
   try {
+    console.log("req.body:::::",req.body);
     const {
       categoryName,
       productName,
@@ -683,7 +686,8 @@ app.post('/asset-inventory-grn', async (req, res) => {
       serialNumbers,
       warrantyPeriodMonths,
       oemName,
-    } = req.body;
+      status="RECEIVED"
+    } = req.body.material;
 
     // Generate a unique 6-digit purchaseId
     const randomNumber = Math.floor(100000 + Math.random() * 900000);
@@ -702,13 +706,15 @@ app.post('/asset-inventory-grn', async (req, res) => {
       categoryName,
       purchaseDate,
       quantity,
-      quantityUnit
+      quantityUnit,
+      productName
     });
 
-    if (quantityUnit === "Units") {
+    if (quantityUnit === "Units"||quantityUnit === "KG"||quantityUnit === "Meter"||quantityUnit === "Grams"||quantityUnit === "Pieces"||quantityUnit === "Dozen"||quantityUnit === "Box"||quantityUnit === "Bags") {
       // Create multiple entries with serialNumbers
       for (const serialNumber of serialNumbers) {
         const newEntry = await inventory.create({
+          oemName,
           categoryName,
           productName,
           inventoryStoreName,
@@ -719,7 +725,8 @@ app.post('/asset-inventory-grn', async (req, res) => {
           warrantyPeriodMonths,
           warrantyStartDate,
           warrantyEndDate,
-          purchaseId // Update purchaseId in AssetInventory
+          purchaseId,
+          status // Update purchaseId in AssetInventory
         });
         newEntries.push(newEntry);
       }
@@ -737,7 +744,8 @@ app.post('/asset-inventory-grn', async (req, res) => {
         warrantyPeriodMonths,
         warrantyStartDate,
         warrantyEndDate,
-        purchaseId // Update purchaseId in AssetInventory
+        purchaseId ,// Update purchaseId in AssetInventory,
+        status
       });
       newEntries.push(newEntry);
     }
@@ -788,7 +796,7 @@ app.post('/asset-inventory-dashboard', async (req, res) => {
         if (item.status === "IN_INVENTORY") {
           purchaseLookup[purchaseId].usableItems++;
         }
-        if(item.status === "FAILED"||item.status === "RECEIVED"||item.status === "IN_QUALITY_CHECK"||item.status === "REJECTED"||item.status === "FAULTY"){
+        if(item.status === "FAILED"||item.status === "REJECTED"||item.status === "FAULTY"){
           purchaseLookup[purchaseId].nonUsableItems++;
 
         }
