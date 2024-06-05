@@ -819,6 +819,29 @@ app.post('/asset-inventory-dashboard', async (req, res) => {
   }
 });
 
+app.post('/getItemsByPurchaseId', async (req, res) => {
+  const { purchaseId } = req.body;
+  
+  try {
+      if (!purchaseId) {
+          return res.status(400).json({ error: 'purchaseId is required' });
+      }
+
+      const items = await AssetInventory.findAll({
+          where: { purchaseId },
+          attributes: ['categoryName', 'oemName', 'productName', 'status', 'warrantyStartDate', 'warrantyEndDate', 'serialNumber', 'inventoryStoreName', 'storeLocation']
+      });
+
+      if (items.length === 0) {
+          return res.status(404).json({ message: 'No items found for the given purchaseId' });
+      }
+
+      res.status(200).json(items);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/assign-testing-manager', async (req, res) => {
   const { purchaseId, categoryName, oemName, productName, purchaseDate, engineerName } = req.body;
 
