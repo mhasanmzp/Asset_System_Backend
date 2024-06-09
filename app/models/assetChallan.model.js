@@ -6,18 +6,21 @@ module.exports = (sequelize, Sequelize) => {
             primaryKey: true
           },
         challanId: {
-            type: Sequelize.INTEGER,
+            type: Sequelize.STRING,
             primaryKey: true
           },
+          challanNumber:{
+            type:Sequelize.STRING
+          },
           challanType: {
-            type: Sequelize.ENUM('inward', 'outward'),
+            type: Sequelize.ENUM('INWARD', 'OUTWARD'),
             allowNull: false
           },
-          categoryId: {
-            type: Sequelize.INTEGER,
+          categoriesName: {
+            type: Sequelize.JSON,
           },
-          modelId: {
-            type: Sequelize.INTEGER,
+          productsName: {
+            type: Sequelize.JSON,
           },
           date: {
             type: Sequelize.DATE,

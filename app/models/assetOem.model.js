@@ -15,15 +15,12 @@ module.exports = (sequelize, Sequelize) => {
     },
     phone: {
       type: Sequelize.STRING,
-      allowNull: false
     },
     email: {
       type: Sequelize.STRING,
-      allowNull: false
     },
     address: {
       type: Sequelize.STRING,
-      allowNull: false
     }
   }, {
     timestamps: false,

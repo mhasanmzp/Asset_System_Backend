@@ -94,6 +94,6 @@ db.AssetOem = require('../app/models/assetOem.model.js')(sequelize, Sequelize);
 db.AssetProject = require('../app/models/assetProjects.model.js')(sequelize, Sequelize);
 db.AssetPurchase = require('../app/models/assetPurchase.model.js')(sequelize, Sequelize);
 db.AssetSite = require('../app/models/assetSite.model.js')(sequelize, Sequelize);
-// db.AssetTesting = require('../app/models/assetTesting.model.js')(sequelize, Sequelize);
+db.AssetStore = require('../app/models/assetStore.model.js')(sequelize, Sequelize);
 // db.AssetWarranty = require('../app/models/assetWarranty.model.js')(sequelize, Sequelize);
 module.exports = db;

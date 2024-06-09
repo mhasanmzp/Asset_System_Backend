@@ -1,23 +1,17 @@
 module.exports = (sequelize, Sequelize) => {
-    const AssetSite = sequelize.define('AssetSite', {
+    const AssetStore = sequelize.define('AssetStore', {
         id: {
             type: Sequelize.INTEGER,
             autoIncrement: true,
             primaryKey: true
           },
-        siteId: {
+        storeId: {
             type: Sequelize.STRING,
             primaryKey: true
           },
-          siteName: {
+          storeName: {
             type: Sequelize.STRING,
             allowNull: false
-          },
-          sitePhone:{
-            type:Sequelize.STRING
-          },
-          siteEmail:{
-            type:Sequelize.STRING
           },
           location: {
             type: Sequelize.STRING,
@@ -26,6 +20,6 @@ module.exports = (sequelize, Sequelize) => {
     }, {
       timestamps: false,
     });
-    AssetSite.sync({ alter: true });
-    return AssetSite;
+    AssetStore.sync({ alter: true });
+    return AssetStore;
   }

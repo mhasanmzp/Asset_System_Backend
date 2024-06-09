@@ -54,7 +54,7 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.STRING,
         },
         status: {
-            type: Sequelize.ENUM('RECEIVED', 'IN USE', 'MAINTENANCE','FAULTY', 'SCRAP', 'FAILED', 'IN_QUALITY_CHECK', 'IN_INVENTORY','REJECTED','DELIVERED'),
+            type: Sequelize.ENUM('RECEIVED', 'IN USE','FAULTY', 'SCRAP', 'IN_QUALITY_CHECK', 'IN STORE','REJECTED','DELIVERED'),
             allowNull: false,
             default: 'RECEIVED'
         },
@@ -79,11 +79,10 @@ module.exports = (sequelize, Sequelize) => {
         },
         deliveryData:{
             type:Sequelize.DATE
+        },
+        challanNumber:{
+            type:Sequelize.STRING
         }
-
-
-
-
     }, {
         timestamps: false,
     });

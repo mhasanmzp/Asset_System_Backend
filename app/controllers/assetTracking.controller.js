@@ -18,6 +18,7 @@ const engineer = db.AssetEngineer
 const inventory = db.AssetInventory
 const item = db.AssetItem
 const model = db.AssetModel
+const store = db.AssetStore
 const movement = db.AssetMovement
 const oem = db.AssetOem
 const project = db.AssetProject
@@ -49,71 +50,71 @@ module.exports = function (app) {
 
 
   // Routes for AssetCategory
-  app.post('/asset-category', async (req, res) => {
-    try {
-      const { name, description } = req.body;
-      // Function to generate new categoryId
-      const getNewCategoryId = async () => {
-        const maxCategory = await category.max('categoryId');
-        return maxCategory ? maxCategory + 1 : 1000;
-      };
+  // app.post('/asset-category', async (req, res) => {
+  //   try {
+  //     const { name, description } = req.body;
+  //     // Function to generate new categoryId
+  //     const getNewCategoryId = async () => {
+  //       const maxCategory = await category.max('categoryId');
+  //       return maxCategory ? maxCategory + 1 : 1000;
+  //     };
 
-      // Check if name already exists
-      const existingCategory = await category.findOne({ where: { name } });
-      if (existingCategory) {
-        return res.status(400).json({ message: 'Category name already exists' });
-      }
+  //     // Check if name already exists
+  //     const existingCategory = await category.findOne({ where: { name } });
+  //     if (existingCategory) {
+  //       return res.status(400).json({ message: 'Category name already exists' });
+  //     }
 
-      // Get new categoryId
-      const newCategoryId = await getNewCategoryId();
+  //     // Get new categoryId
+  //     const newCategoryId = await getNewCategoryId();
 
-      // Create new category
-      const newCategory = await category.create({
-        categoryId: newCategoryId,
-        name,
-        description
-      });
+  //     // Create new category
+  //     const newCategory = await category.create({
+  //       categoryId: newCategoryId,
+  //       name,
+  //       description
+  //     });
 
-      res.status(201).json(newCategory);
-    } catch (error) {
-      res.status(500).json({ message: 'Error creating category', error });
-    }
-  });
+  //     res.status(201).json(newCategory);
+  //   } catch (error) {
+  //     res.status(500).json({ message: 'Error creating category', error });
+  //   }
+  // });
   //for multiple entries
   app.post('/asset-category', async (req, res) => {
     try {
       const categories = req.body; // Assume categories is an array of objects [{ name: 'Category1', description: 'Description1' }, ...]
-  
+
       // Function to generate new categoryId
       const getNewCategoryId = async () => {
         const maxCategory = await category.max('categoryId');
         return maxCategory ? maxCategory + 1 : 1000;
       };
-  
+
       const newCategories = [];
-  
+
       for (const cat of categories) {
         const { name, description } = cat;
-  
+
         // Check if name already exists
         const existingCategory = await category.findOne({ where: { name } });
         if (existingCategory) {
           return res.status(400).json({ message: `Category name ${name} already exists` });
         }
-  
+
         // Get new categoryId
         const newCategoryId = await getNewCategoryId();
-  
+
         // Create new category
         const newCategory = await category.create({
           categoryId: newCategoryId,
           name,
           description
         });
-  
+
         newCategories.push(newCategory);
       }
-  
+
       res.status(201).json(newCategories);
     } catch (error) {
       res.status(500).json({ message: 'Error creating categories', error });
@@ -146,62 +147,114 @@ module.exports = function (app) {
     }
   });
 
-  // Routes for AssetEngineer
-  app.post('/asset-engineer', async (req, res) => {
+  // API to create new stores
+  app.post('/asset-stores', async (req, res) => {
     try {
-      const { name, phone, email } = req.body;
-      const getNewEngineerId = async () => {
-        const maxEngineer = await engineer.max('engineerId');
-        return maxEngineer ? maxEngineer + 1 : 1000;
-      };
+      const stores = req.body;
 
-      // Check if email already exists
-      const existingEngineer = await engineer.findOne({ where: { email } });
-      if (existingEngineer) {
-        return res.status(400).json({ message: 'Engineer email already exists' });
+      if (!Array.isArray(stores)) {
+        return res.status(400).json({ message: 'Input should be an array of store objects' });
       }
 
-      // Get new engineerId
-      const newEngineerId = await getNewEngineerId();
+      const newStores = [];
 
-      // Create new engineer
-      const newEngineer = await engineer.create({
-        engineerId: newEngineerId,
-        name,
-        phone,
-        email
-      });
+      for (const store of stores) {
+        const { storeName, location } = store;
 
-      res.status(201).json(newEngineer);
+        // Check if storeName already exists
+        const existingStore = await AssetStore.findOne({ where: { storeName } });
+        if (existingStore) {
+          return res.status(400).json({ message: `Store name '${storeName}' already exists` });
+        }
+
+        // Get new storeId
+        const newStoreId = await getNewStoreId();
+
+        // Create new store object
+        newStores.push({
+          storeId: newStoreId.toString(),
+          storeName,
+          location
+        });
+      }
+
+      // Bulk create new stores
+      await AssetStore.bulkCreate(newStores);
+
+      res.status(201).json({ message: 'Stores created successfully', stores: newStores });
     } catch (error) {
-      res.status(500).json({ message: 'Error creating engineer', error });
+      res.status(500).json({ message: 'Error creating stores', error });
     }
   });
+
+  // API to get store IDs and names
+  app.get('/stores-dropdown', async (req, res) => {
+    try {
+      const stores = await AssetStore.findAll({
+        attributes: ['storeId', 'storeName']
+      });
+      res.status(200).send(stores);
+    } catch (error) {
+      res.status(500).send({ error: error.message });
+    }
+  });
+
+  // Routes for AssetEngineer
+  // app.post('/asset-engineer', async (req, res) => {
+  //   try {
+  //     const { name, phone, email } = req.body;
+  //     const getNewEngineerId = async () => {
+  //       const maxEngineer = await engineer.max('engineerId');
+  //       return maxEngineer ? maxEngineer + 1 : 1000;
+  //     };
+
+  //     // Check if email already exists
+  //     const existingEngineer = await engineer.findOne({ where: { email } });
+  //     if (existingEngineer) {
+  //       return res.status(400).json({ message: 'Engineer email already exists' });
+  //     }
+
+  //     // Get new engineerId
+  //     const newEngineerId = await getNewEngineerId();
+
+  //     // Create new engineer
+  //     const newEngineer = await engineer.create({
+  //       engineerId: newEngineerId,
+  //       name,
+  //       phone,
+  //       email
+  //     });
+
+  //     res.status(201).json(newEngineer);
+  //   } catch (error) {
+  //     res.status(500).json({ message: 'Error creating engineer', error });
+  //   }
+  // });
   //for multiple engineer entry
   app.post('/asset-engineer', async (req, res) => {
     try {
       const engineers = req.body; // Assume engineers is an array of objects [{ name: 'Engineer1', phone: '1234567890', email: 'email1@example.com' }, ...]
-  
+
       // Function to generate new engineerId
       const getNewEngineerId = async () => {
         const maxEngineer = await engineer.max('engineerId');
         return maxEngineer ? maxEngineer + 1 : 1000;
       };
-  
+
       const newEngineers = [];
-  
+
       for (const eng of engineers) {
         const { name, phone, email } = eng;
-  
+
         // Check if email already exists
         const existingEngineer = await engineer.findOne({ where: { email } });
         if (existingEngineer) {
           return res.status(400).json({ message: `Engineer email ${email} already exists` });
         }
-  
+
         // Get new engineerId
         const newEngineerId = await getNewEngineerId();
-  
+
         // Create new engineer
         const newEngineer = await engineer.create({
           engineerId: newEngineerId,
@@ -209,16 +262,16 @@ module.exports = function (app) {
           phone,
           email
         });
-  
+
         newEngineers.push(newEngineer);
       }
-  
+
       res.status(201).json(newEngineers);
     } catch (error) {
       res.status(500).json({ message: 'Error creating engineers', error });
     }
   });
-  
+
 
   app.post('/asset-engineers-dropdown', async (req, res) => {
     try {
@@ -233,62 +286,62 @@ module.exports = function (app) {
     }
   });
   // Routes for AssetModel
-  app.post('/asset-model', async (req, res) => {
-    try {
-      const { name, description, categoryId } = req.body;
-      // Function to generate new modelId
-      const getNewModelId = async () => {
-        const maxModel = await model.max('modelId');
-        return maxModel ? maxModel + 1 : 1000;
-      };
+  // app.post('/asset-model', async (req, res) => {
+  //   try {
+  //     const { name, description, categoryId } = req.body;
+  //     // Function to generate new modelId
+  //     const getNewModelId = async () => {
+  //       const maxModel = await model.max('modelId');
+  //       return maxModel ? maxModel + 1 : 1000;
+  //     };
 
-      // Check if name already exists
-      const existingModel = await model.findOne({ where: { name } });
-      if (existingModel) {
-        return res.status(400).json({ message: 'Model name already exists' });
-      }
+  //     // Check if name already exists
+  //     const existingModel = await model.findOne({ where: { name } });
+  //     if (existingModel) {
+  //       return res.status(400).json({ message: 'Model name already exists' });
+  //     }
 
-      // Get new modelId
-      const newModelId = await getNewModelId();
+  //     // Get new modelId
+  //     const newModelId = await getNewModelId();
 
-      // Create new model
-      const newModel = await model.create({
-        modelId: newModelId,
-        name,
-        description,
-        categoryId
-      });
+  //     // Create new model
+  //     const newModel = await model.create({
+  //       modelId: newModelId,
+  //       name,
+  //       description,
+  //       categoryId
+  //     });
 
-      res.status(201).json(newModel);
-    } catch (error) {
-      res.status(500).json({ message: 'Error creating model', error });
-    }
-  });
+  //     res.status(201).json(newModel);
+  //   } catch (error) {
+  //     res.status(500).json({ message: 'Error creating model', error });
+  //   }
+  // });
   //for multiple model
   app.post('/asset-model', async (req, res) => {
     try {
       const models = req.body; // Assume models is an array of objects [{ name: 'Model1', description: 'Description1', categoryId: 1 }, ...]
-  
+
       // Function to generate new modelId
       const getNewModelId = async () => {
         const maxModel = await model.max('modelId');
         return maxModel ? maxModel + 1 : 1000;
       };
-  
+
       const newModels = [];
-  
+
       for (const mod of models) {
         const { name, description, categoryId } = mod;
-  
+
         // Check if name already exists
         const existingModel = await model.findOne({ where: { name } });
         if (existingModel) {
           return res.status(400).json({ message: `Model name ${name} already exists` });
         }
-  
+
         // Get new modelId
         const newModelId = await getNewModelId();
-  
+
         // Create new model
         const newModel = await model.create({
           modelId: newModelId,
@@ -296,15 +349,15 @@ module.exports = function (app) {
           description,
           categoryId
         });
-  
+
         newModels.push(newModel);
       }
-  
+
       res.status(201).json(newModels);
     } catch (error) {
       res.status(500).json({ message: 'Error creating models', error });
     }
-  });  
+  });
 
   app.post('/asset-models-dropdown', async (req, res) => {
     try {
@@ -320,63 +373,63 @@ module.exports = function (app) {
   });
 
   // Routes for AssetOem
-  app.post('/asset-oem', async (req, res) => {
-    try {
-      const { oemName, phone, email, address } = req.body;
-      // Function to generate new oemId
-      const getNewOemId = async () => {
-        const maxOem = await oem.max('oemId');
-        return maxOem ? maxOem + 1 : 1000;
-      };
+  // app.post('/asset-oem', async (req, res) => {
+  //   try {
+  //     const { oemName, phone, email, address } = req.body;
+  //     // Function to generate new oemId
+  //     const getNewOemId = async () => {
+  //       const maxOem = await oem.max('oemId');
+  //       return maxOem ? maxOem + 1 : 1000;
+  //     };
 
-      // Check if email already exists
-      const existingOem = await oem.findOne({ where: { email } });
-      if (existingOem) {
-        return res.status(400).json({ message: 'OEM email already exists' });
-      }
+  //     // Check if email already exists
+  //     const existingOem = await oem.findOne({ where: { email } });
+  //     if (existingOem) {
+  //       return res.status(400).json({ message: 'OEM email already exists' });
+  //     }
 
-      // Get new oemId
-      const newOemId = await getNewOemId();
+  //     // Get new oemId
+  //     const newOemId = await getNewOemId();
 
-      // Create new OEM
-      const newOem = await oem.create({
-        oemId: newOemId,
-        oemName,
-        phone,
-        email,
-        address
-      });
+  //     // Create new OEM
+  //     const newOem = await oem.create({
+  //       oemId: newOemId,
+  //       oemName,
+  //       phone,
+  //       email,
+  //       address
+  //     });
 
-      res.status(201).json(newOem);
-    } catch (error) {
-      res.status(500).json({ message: 'Error creating OEM', error });
-    }
-  });
+  //     res.status(201).json(newOem);
+  //   } catch (error) {
+  //     res.status(500).json({ message: 'Error creating OEM', error });
+  //   }
+  // });
   //for multiple oems
   app.post('/asset-oem', async (req, res) => {
     try {
       const oems = req.body; // Assume oems is an array of objects [{ oemName: 'OEM1', phone: '1234567890', email: 'email1@example.com', address: 'Address1' }, ...]
-  
+
       // Function to generate new oemId
       const getNewOemId = async () => {
         const maxOem = await oem.max('oemId');
         return maxOem ? maxOem + 1 : 1000;
       };
-  
+
       const newOems = [];
-  
+
       for (const o of oems) {
         const { oemName, phone, email, address } = o;
-  
+
         // Check if email already exists
         const existingOem = await oem.findOne({ where: { email } });
         if (existingOem) {
           return res.status(400).json({ message: `OEM email ${email} already exists` });
         }
-  
+
         // Get new oemId
         const newOemId = await getNewOemId();
-  
+
         // Create new OEM
         const newOem = await oem.create({
           oemId: newOemId,
@@ -385,16 +438,16 @@ module.exports = function (app) {
           email,
           address
         });
-  
+
         newOems.push(newOem);
       }
-  
+
       res.status(201).json(newOems);
     } catch (error) {
       res.status(500).json({ message: 'Error creating OEMs', error });
     }
   });
-  
+
 
   app.put('/asset-oem/:id', async (req, res) => {
     try {
@@ -434,63 +487,63 @@ module.exports = function (app) {
   });
 
   // Routes for AssetProject
-  app.post('/asset-project', async (req, res) => {
-    try {
-      const { projectName, description, startDate, endDate } = req.body;
-      // Function to generate new projectId
-      const getNewProjectId = async () => {
-        const maxProject = await project.max('projectId');
-        return maxProject ? maxProject + 1 : 1000;
-      };
+  // app.post('/asset-project', async (req, res) => {
+  //   try {
+  //     const { projectName, description, startDate, endDate } = req.body;
+  //     // Function to generate new projectId
+  //     const getNewProjectId = async () => {
+  //       const maxProject = await project.max('projectId');
+  //       return maxProject ? maxProject + 1 : 1000;
+  //     };
 
-      // Check if projectName already exists
-      const existingProject = await project.findOne({ where: { projectName } });
-      if (existingProject) {
-        return res.status(400).json({ message: 'Project name already exists' });
-      }
+  //     // Check if projectName already exists
+  //     const existingProject = await project.findOne({ where: { projectName } });
+  //     if (existingProject) {
+  //       return res.status(400).json({ message: 'Project name already exists' });
+  //     }
 
-      // Get new projectId
-      const newProjectId = await getNewProjectId();
+  //     // Get new projectId
+  //     const newProjectId = await getNewProjectId();
 
-      // Create new project
-      const newProject = await project.create({
-        projectId: newProjectId,
-        projectName,
-        description,
-        startDate,
-        endDate
-      });
+  //     // Create new project
+  //     const newProject = await project.create({
+  //       projectId: newProjectId,
+  //       projectName,
+  //       description,
+  //       startDate,
+  //       endDate
+  //     });
 
-      res.status(201).json(newProject);
-    } catch (error) {
-      res.status(500).json({ message: 'Error creating project', error });
-    }
-  });
+  //     res.status(201).json(newProject);
+  //   } catch (error) {
+  //     res.status(500).json({ message: 'Error creating project', error });
+  //   }
+  // });
   //for multiple project
   app.post('/asset-project', async (req, res) => {
     try {
       const projects = req.body; // Assume projects is an array of objects [{ projectName: 'Project1', description: 'Description1', startDate: '2024-06-01', endDate: '2024-06-30' }, ...]
-  
+
       // Function to generate new projectId
       const getNewProjectId = async () => {
         const maxProject = await project.max('projectId');
         return maxProject ? maxProject + 1 : 1000;
       };
-  
+
       const newProjects = [];
-  
+
       for (const p of projects) {
         const { projectName, description, startDate, endDate } = p;
-  
+
         // Check if projectName already exists
         const existingProject = await project.findOne({ where: { projectName } });
         if (existingProject) {
           return res.status(400).json({ message: `Project name ${projectName} already exists` });
         }
-  
+
         // Get new projectId
         const newProjectId = await getNewProjectId();
-  
+
         // Create new project
         const newProject = await project.create({
           projectId: newProjectId,
@@ -499,16 +552,16 @@ module.exports = function (app) {
           startDate,
           endDate
         });
-  
+
         newProjects.push(newProject);
       }
-  
+
       res.status(201).json(newProjects);
     } catch (error) {
       res.status(500).json({ message: 'Error creating projects', error });
     }
   });
-  
+
 
   app.put('/asset-project/:id', async (req, res) => {
     try {
@@ -547,320 +600,366 @@ module.exports = function (app) {
     }
   });
 
-// Routes for AssetSite
-app.post('/asset-site', async (req, res) => {
-  try {
-    const { siteName, sitePhone, siteEmail, location } = req.body;
-    // Function to generate new siteId
-const getNewSiteId = async () => {
-  const maxSite = await site.max('siteId');
-  return maxSite ? maxSite + 1 : 1000;
-};
+  // Routes for AssetSite
+  // app.post('/asset-site', async (req, res) => {
+  //   try {
+  //     const { siteName, sitePhone, siteEmail, location } = req.body;
+  //     // Function to generate new siteId
+  //     const getNewSiteId = async () => {
+  //       const maxSite = await site.max('siteId');
+  //       return maxSite ? maxSite + 1 : 1000;
+  //     };
 
-    // Check if siteName already exists
-    const existingSite = await site.findOne({ where: { siteName } });
-    if (existingSite) {
-      return res.status(400).json({ message: 'Site name already exists' });
-    }
+  //     // Check if siteName already exists
+  //     const existingSite = await site.findOne({ where: { siteName } });
+  //     if (existingSite) {
+  //       return res.status(400).json({ message: 'Site name already exists' });
+  //     }
 
-    // Get new siteId
-    const newSiteId = await getNewSiteId();
+  //     // Get new siteId
+  //     const newSiteId = await getNewSiteId();
 
-    // Create new site
-    const newSite = await site.create({
-      siteId: newSiteId,
-      siteName,
-      sitePhone,
-      siteEmail,
-      location
-    });
+  //     // Create new site
+  //     const newSite = await site.create({
+  //       siteId: newSiteId,
+  //       siteName,
+  //       sitePhone,
+  //       siteEmail,
+  //       location
+  //     });
 
-    res.status(201).json(newSite);
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating site', error });
-  }
-});
-//for multiple sites
-app.post('/asset-site', async (req, res) => {
-  try {
-    const sites = req.body; // Assume sites is an array of objects [{ siteName: 'Site1', sitePhone: '1234567890', siteEmail: 'email1@example.com', location: 'Location1' }, ...]
+  //     res.status(201).json(newSite);
+  //   } catch (error) {
+  //     res.status(500).json({ message: 'Error creating site', error });
+  //   }
+  // });
+  //for multiple sites
+  app.post('/asset-site', async (req, res) => {
+    try {
+      const sites = req.body; // Assume sites is an array of objects [{ siteName: 'Site1', sitePhone: '1234567890', siteEmail: 'email1@example.com', location: 'Location1' }, ...]
 
-    // Function to generate new siteId
-    const getNewSiteId = async () => {
-      const maxSite = await site.max('siteId');
-      return maxSite ? maxSite + 1 : 1000;
-    };
+      // Function to generate new siteId
+      const getNewSiteId = async () => {
+        const maxSite = await site.max('siteId');
+        return maxSite ? maxSite + 1 : 1000;
+      };
 
-    const newSites = [];
+      const newSites = [];
 
-    for (const s of sites) {
-      const { siteName, sitePhone, siteEmail, location } = s;
+      for (const s of sites) {
+        const { siteName, sitePhone, siteEmail, location } = s;
 
-      // Check if siteName already exists
-      const existingSite = await site.findOne({ where: { siteName } });
-      if (existingSite) {
-        return res.status(400).json({ message: `Site name ${siteName} already exists` });
+        // Check if siteName already exists
+        const existingSite = await site.findOne({ where: { siteName } });
+        if (existingSite) {
+          return res.status(400).json({ message: `Site name ${siteName} already exists` });
+        }
+
+        // Get new siteId
+        const newSiteId = await getNewSiteId();
+
+        // Create new site
+        const newSite = await site.create({
+          siteId: newSiteId,
+          siteName,
+          sitePhone,
+          siteEmail,
+          location
+        });
+
+        newSites.push(newSite);
       }
 
-      // Get new siteId
-      const newSiteId = await getNewSiteId();
+      res.status(201).json(newSites);
+    } catch (error) {
+      res.status(500).json({ message: 'Error creating sites', error });
+    }
+  });
 
-      // Create new site
-      const newSite = await site.create({
-        siteId: newSiteId,
-        siteName,
-        sitePhone,
-        siteEmail,
-        location
+  app.put('/asset-site/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { siteName, sitePhone, siteEmail, location } = req.body;
+
+      // Find the site by id
+      const site = await AssetSite.findByPk(id);
+      if (!site) {
+        return res.status(404).json({ message: 'Site not found' });
+      }
+
+      // Update the site
+      site.siteName = siteName || site.siteName;
+      site.sitePhone = sitePhone || site.sitePhone;
+      site.siteEmail = siteEmail || site.siteEmail;
+      site.location = location || site.location;
+      await site.save();
+
+      res.status(200).json(site);
+    } catch (error) {
+      res.status(500).json({ message: 'Error updating site', error });
+    }
+  });
+
+  app.post('/asset-sites-dropdown', async (req, res) => {
+    try {
+      const sites = await site.findAll({
+        attributes: ['siteId', 'siteName'],
+        order: [['siteName', 'ASC']]
       });
 
-      newSites.push(newSite);
+      res.status(200).json(sites);
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching sites', error });
     }
+  });
 
-    res.status(201).json(newSites);
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating sites', error });
-  }
-});
+  app.get('/getSubstations', async (req, res) => {
+    try {
+      const sites = await site.findAll({
+        attributes: ['siteId', 'siteName'],
+        order: [['siteName', 'ASC']]
+      });
 
-app.put('/asset-site/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { siteName, sitePhone, siteEmail, location } = req.body;
-
-    // Find the site by id
-    const site = await AssetSite.findByPk(id);
-    if (!site) {
-      return res.status(404).json({ message: 'Site not found' });
+      res.status(200).json(sites);
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching sites', error });
     }
+  });
 
-    // Update the site
-    site.siteName = siteName || site.siteName;
-    site.sitePhone = sitePhone || site.sitePhone;
-    site.siteEmail = siteEmail || site.siteEmail;
-    site.location = location || site.location;
-    await site.save();
+  app.post('/asset-inventory-grn', async (req, res) => {
+    try {
+      console.log("req.body:::::", req.body);
+      // Function to generate a unique 6-digit purchaseId
+      const generatePurchaseId = async (oemName) => {
+        const randomNumber = Math.floor(100000 + Math.random() * 900000);
+        return randomNumber;
+      };
 
-    res.status(200).json(site);
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating site', error });
-  }
-});
+      // Function to generate a unique challanId
+      const generateChallanId = async () => {
+        const maxChallanId = await challan.max('challanId');
+        return maxChallanId ? parseInt(maxChallanId) + 1 : 1000;
+      };
+      const {
+        grnDate,
+        storeName,
+        oemName,
+        challanNo,
+        challanDate,
+        materialRows
+      } = req.body;
 
-app.post('/asset-sites-dropdown', async (req, res) => {
-  try {
-    const sites = await site.findAll({
-      attributes: ['siteId', 'siteName'],
-      order: [['siteName', 'ASC']]
-    });
+      // Generate challanId
+      const challanId = await generateChallanId();
 
-    res.status(200).json(sites);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching sites', error });
-  }
-});
+      const categoriesName = {};
+      const productsName = {};
+      const quantityUnits = {};
+      const newEntries = [];
 
-app.get('/getSubstations', async (req, res) => {
-  try {
-    const sites = await site.findAll({
-      attributes: ['siteId', 'siteName'],
-      order: [['siteName', 'ASC']]
-    });
+      let categoryCount = 1;
+      let productCount = 1;
 
-    res.status(200).json(sites);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching sites', error });
-  }
-});
-
-app.post('/asset-inventory-grn', async (req, res) => {
-  try {
-    console.log("req.body:::::",req.body);
-    const {
-      categoryName,
-      productName,
-      inventoryStoreName,
-      quantityUnit,
-      quantity,
-      storeLocation,
-      purchaseDate,
-      serialNumbers,
-      warrantyPeriodMonths,
-      oemName,
-      status="RECEIVED"
-    } = req.body.material;
-
-    // Generate a unique 6-digit purchaseId
-    const randomNumber = Math.floor(100000 + Math.random() * 900000);
-    const purchaseId = `${oemName}-${randomNumber}`
-
-    const warrantyStartDate = purchaseDate;
-    const warrantyEndDate = new Date(purchaseDate);
-    warrantyEndDate.setMonth(warrantyEndDate.getMonth() + warrantyPeriodMonths);
-
-    const newEntries = [];
-
-    // Create an entry in AssetPurchase
-    const newPurchase = await purchase.create({
-      purchaseId,
-      oemName,
-      categoryName,
-      purchaseDate,
-      quantity,
-      quantityUnit,
-      productName
-    });
-
-    if (quantityUnit === "Units"||quantityUnit === "KG"||quantityUnit === "Meter"||quantityUnit === "Grams"||quantityUnit === "Pieces"||quantityUnit === "Dozen"||quantityUnit === "Box"||quantityUnit === "Bags") {
-      // Create multiple entries with serialNumbers
-      for (const serialNumber of serialNumbers) {
-        const newEntry = await inventory.create({
-          oemName,
+      for (const material of materialRows) {
+        const {
           categoryName,
           productName,
-          inventoryStoreName,
+          quantity,
           quantityUnit,
-          storeLocation,
-          purchaseDate,
-          serialNumber,
           warrantyPeriodMonths,
-          warrantyStartDate,
-          warrantyEndDate,
-          purchaseId,
-          status // Update purchaseId in AssetInventory
-        });
-        newEntries.push(newEntry);
+          storeLocation,
+          serialNumbers
+        } = material;
+
+        // Generate a unique purchaseId
+        const purchaseId = await generatePurchaseId();
+
+        const warrantyStartDate = grnDate;
+        const warrantyEndDate = new Date(grnDate);
+        warrantyEndDate.setMonth(warrantyEndDate.getMonth() + warrantyPeriodMonths);
+
+        categoriesName[`Category${categoryCount}`] = categoryName;
+        productsName[`Product${productCount}`] = productName;
+        quantityUnits[`QuantityUnit${productCount}`] = quantityUnit;
+        categoryCount++;
+        productCount++;
+
+        if (["Units", "KG", "Metre", "Grams", "Pieces", "Dozen", "Box", "Bag"].includes(quantityUnit)) {
+          // Create multiple entries with serialNumbers
+          for (const serialNumber of serialNumbers) {
+            const newEntry = await inventory.create({
+              oemName,
+              categoryName,
+              productName,
+              inventoryStoreName: storeName,
+              quantityUnit,
+              storeLocation,
+              purchaseDate: grnDate,
+              serialNumber,
+              warrantyPeriodMonths,
+              warrantyStartDate,
+              warrantyEndDate,
+              purchaseId,
+              status: "RECEIVED",
+              challanNumber: challanNo
+            });
+            newEntries.push(newEntry);
+          }
+        } else {
+          // Create a single entry without serialNumbers
+          const newEntry = await inventory.create({
+            categoryName,
+            productName,
+            inventoryStoreName: storeName,
+            quantity,
+            quantityUnit,
+            storeLocation,
+            purchaseDate: grnDate,
+            serialNumber: null, // Assuming serialNumber is not nullable
+            warrantyPeriodMonths,
+            warrantyStartDate,
+            warrantyEndDate,
+            purchaseId,
+            status: "RECEIVED",
+            challanId: challanNo
+          });
+          newEntries.push(newEntry);
+        }
       }
-    } else {
-      // Create a single entry without serialNumbers
-      const newEntry = await inventory.create({
-        categoryName,
-        productName,
-        inventoryStoreName,
-        quantity,
-        quantityUnit,
-        storeLocation,
-        purchaseDate,
-        serialNumber: null, // Assuming serialNumber is not nullable
-        warrantyPeriodMonths,
-        warrantyStartDate,
-        warrantyEndDate,
-        purchaseId ,// Update purchaseId in AssetInventory,
-        status
+
+      // Create an entry in AssetChallan
+      const newChallan = await challan.create({
+        challanId: challanId.toString(),
+        challanNumber: challanNo,
+        challanType: 'INWARD',
+        categoriesName,
+        productsName,
+        date: challanDate,
+        details: JSON.stringify(req.body)
       });
-      newEntries.push(newEntry);
+
+      // Create an entry in AssetPurchase
+      const newPurchase = await purchase.create({
+        purchaseId: newEntries[0].purchaseId, // Assuming all entries have the same purchaseId
+        oemName,
+        categoriesName,
+        productsName,
+        purchaseDate: grnDate,
+        quantity: materialRows.reduce((acc, material) => acc + material.quantity, 0),
+        quantityUnits
+      });
+
+      res.status(201).json({ message: "Entries Created Successfully"});
+    } catch (error) {
+      res.status(500).json({ message: 'Error creating entries', error });
     }
+  });//important
 
-    res.status(201).json({"message":"Entries Created Successfully"});
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating entries', error });
-  }
-});
+  app.post('/asset-inventory-dashboard', async (req, res) => {
+    try {
+      // Fetch purchase data
+      const purchaseData = await purchase.findAll({
+        attributes: ['purchaseId', 'oemName', 'purchaseDate'],
+        raw: true
+      });
 
-app.post('/asset-inventory-dashboard', async (req, res) => {
-  try {
-    // Fetch purchase data
-    const purchaseData = await purchase.findAll({
-      attributes: ['purchaseId', 'oemName', 'purchaseDate'],
-      raw: true
-    });
+      // Fetch inventory data
+      const inventoryData = await inventory.findAll({
+        attributes: ['purchaseId', 'categoryName', 'productName', 'status'],
+        raw: true
+      });
 
-    // Fetch inventory data
-    const inventoryData = await inventory.findAll({
-      attributes: ['purchaseId', 'categoryName', 'productName', 'status'],
-      raw: true
-    });
+      console.log(purchaseData);
+      console.log(inventoryData);
 
-    console.log(purchaseData);
-    console.log(inventoryData);
+      // Create a lookup table for purchase data
+      const purchaseLookup = {};
+      purchaseData.forEach(purchase => {
+        purchaseLookup[purchase.purchaseId] = {
+          purchaseId: purchase.purchaseId,
+          oemName: purchase.oemName,
+          purchaseDate: purchase.purchaseDate,
+          categoryName: '', // Initialize to store later
+          productName: '', // Initialize to store later
+          totalItems: 0,
+          usableItems: 0,
+          nonUsableItems: 0
+        };
+      });
 
-    // Create a lookup table for purchase data
-    const purchaseLookup = {};
-    purchaseData.forEach(purchase => {
-      purchaseLookup[purchase.purchaseId] = {
-        purchaseId: purchase.purchaseId,
-        oemName: purchase.oemName,
-        purchaseDate: purchase.purchaseDate,
-        categoryName: '', // Initialize to store later
-        productName: '', // Initialize to store later
-        totalItems: 0,
-        usableItems: 0,
-        nonUsableItems: 0
-      };
-    });
+      // Group inventory data by purchaseId
+      inventoryData.forEach(item => {
+        const purchaseId = item.purchaseId;
+        if (purchaseLookup[purchaseId]) {
+          purchaseLookup[purchaseId].totalItems++;
+          if (item.status === "IN_INVENTORY") {
+            purchaseLookup[purchaseId].usableItems++;
+          }
+          if (item.status === "FAILED" || item.status === "REJECTED" || item.status === "FAULTY") {
+            purchaseLookup[purchaseId].nonUsableItems++;
 
-    // Group inventory data by purchaseId
-    inventoryData.forEach(item => {
-      const purchaseId = item.purchaseId;
-      if (purchaseLookup[purchaseId]) {
-        purchaseLookup[purchaseId].totalItems++;
-        if (item.status === "IN_INVENTORY") {
-          purchaseLookup[purchaseId].usableItems++;
+          }
+          // Assign productName and categoryName
+          purchaseLookup[purchaseId].productName = item.productName;
+          purchaseLookup[purchaseId].categoryName = item.categoryName;
         }
-        if(item.status === "FAILED"||item.status === "REJECTED"||item.status === "FAULTY"){
-          purchaseLookup[purchaseId].nonUsableItems++;
+      });
 
-        }
-        // Assign productName and categoryName
-        purchaseLookup[purchaseId].productName = item.productName;
-        purchaseLookup[purchaseId].categoryName = item.categoryName;
-      }
-    });
+      // Calculate non-usable items
+      // Object.values(purchaseLookup).forEach(group => {
+      //   // group.nonUsableItems = group.totalItems - group.usableItems;
+      // });
+      const array = Object.values(purchaseLookup)
 
-    // Calculate non-usable items
-    // Object.values(purchaseLookup).forEach(group => {
-    //   // group.nonUsableItems = group.totalItems - group.usableItems;
-    // });
-    const array = Object.values(purchaseLookup)
+      res.status(200).json({ "purchaseData": Object.values(purchaseLookup) });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: 'Error fetching asset inventory summary', error });
+    }
+  });
 
-    res.status(200).json({"purchaseData":Object.values(purchaseLookup)});
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: 'Error fetching asset inventory summary', error });
-  }
-});
+  app.post('/getItemsByPurchaseId', async (req, res) => {
+    const { purchaseId } = req.body;
 
-app.post('/getItemsByPurchaseId', async (req, res) => {
-  const { purchaseId } = req.body;
-  
-  try {
+    try {
       if (!purchaseId) {
-          return res.status(400).json({ error: 'purchaseId is required' });
+        return res.status(400).json({ error: 'purchaseId is required' });
       }
+      //attributes: ['categoryName', 'oemName', 'productName', 'status', 'warrantyStartDate', 'warrantyEndDate', 'serialNumber', 'inventoryStoreName', 'storeLocation','challanNumber']
 
       const items = await AssetInventory.findAll({
-          where: { purchaseId },
-          attributes: ['categoryName', 'oemName', 'productName', 'status', 'warrantyStartDate', 'warrantyEndDate', 'serialNumber', 'inventoryStoreName', 'storeLocation']
+        where: { purchaseId },
+        
       });
 
       if (items.length === 0) {
-          return res.status(404).json({ message: 'No items found for the given purchaseId' });
+        return res.status(404).json({ message: 'No items found for the given purchaseId' });
       }
 
       res.status(200).json(items);
-  } catch (error) {
+    } catch (error) {
       res.status(500).json({ error: error.message });
-  }
-});
+    }
+  });
 
-app.post('/assign-testing-manager', async (req, res) => {
-  const { purchaseId, categoryName, oemName, productName, purchaseDate, engineerName } = req.body;
+  app.post('/assign-testing-manager', async (req, res) => {
+    const { purchaseId, categoryName, oemName, productName, purchaseDate, engineerName } = req.body;
 
-  try {
+    try {
       // Find the asset with status 'RECEIVED'
       const asset = await inventory.findOne({
-          where: {
-              purchaseId,
-              categoryName,
-              oemName,
-              productName,
-              purchaseDate,
-              status: 'RECEIVED'
-          }
+        where: {
+          purchaseId,
+          categoryName,
+          oemName,
+          productName,
+          purchaseDate,
+          status: 'RECEIVED'
+        }
       });
 
       if (!asset) {
-          return res.status(404).json({ message: 'Asset not found or not in RECEIVED status' });
+        return res.status(404).json({ message: 'Asset not found or not in RECEIVED status' });
       }
 
       // Update the asset
@@ -870,118 +969,118 @@ app.post('/assign-testing-manager', async (req, res) => {
       await asset.save();
 
       res.json({ message: 'Testing manager assigned and status updated', asset });
-  } catch (error) {
+    } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'An error occurred', error });
-  }
-});
+    }
+  });
 
-// API route to assign a testing manager for multiple entries
-app.post('/assign-testing-manager', async (req, res) => {
-  const { items, engineerName ,status } = req.body;
+  // API route to assign a testing manager for multiple entries
+  app.post('/assign-testing-manager', async (req, res) => {
+    const { items, engineerName, status } = req.body;
 
-  try {
+    try {
       // Loop through each item and update the asset
       const updatePromises = items.map(async (item) => {
-          const { purchaseId, categoryName, oemName, productName, purchaseDate, serialNumber } = item;
+        const { purchaseId, categoryName, oemName, productName, purchaseDate, serialNumber } = item;
 
-          // Find the asset with status 'RECEIVED'
-          const asset = await AssetInventory.findOne({
-              where: {
-                  purchaseId,
-                  categoryName,
-                  oemName,
-                  productName,
-                  purchaseDate,
-                  serialNumber,
-                  status: 'RECEIVED'
-              }
-          });
-
-          if (asset) {
-              // Update the asset
-              asset.engineerName = engineerName;
-              asset.status = status; // Correct the typo if needed
-
-              await asset.save();
+        // Find the asset with status 'RECEIVED'
+        const asset = await AssetInventory.findOne({
+          where: {
+            purchaseId,
+            categoryName,
+            oemName,
+            productName,
+            purchaseDate,
+            serialNumber,
+            status: 'RECEIVED'
           }
+        });
+
+        if (asset) {
+          // Update the asset
+          asset.engineerName = engineerName;
+          asset.status = status; // Correct the typo if needed
+
+          await asset.save();
+        }
       });
 
       // Wait for all updates to complete
       await Promise.all(updatePromises);
 
       res.json({ message: 'Testing manager assigned and status updated for all items' });
-  } catch (error) {
+    } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'An error occurred', error });
-  }
-});
+    }
+  });
 
-app.post('/delivery-product-list', async (req, res) => {
-  try {
+  app.post('/delivery-product-list', async (req, res) => {
+    try {
       const { category } = req.body;
       let whereClause = { status: 'IN_INVENTORY' };
 
       if (category) {
-          whereClause.categoryName = category;
+        whereClause.categoryName = category;
       }
 
       const inventoryItems = await inventory.findAll({
-          where: whereClause,
-          attributes: ['serialNumber', 'productName', 'status','categoryName']
+        where: whereClause,
+        attributes: ['serialNumber', 'productName', 'status', 'categoryName']
       });
 
-      res.status(200).json({"productData":inventoryItems});
-  } catch (error) {
+      res.status(200).json({ "productData": inventoryItems });
+    } catch (error) {
       console.error('Error fetching inventory items:', error);
       res.status(500).json({ error: 'An error occurred while fetching inventory items' });
-  }
-});
+    }
+  });
 
-app.post('/update-delivery-data', async (req, res) => {
-  const { products, substation} = req.body.deliveryDetails;
-  console.log("products",products);
-  console.log("substation",substation);
-  const siteName = substation.siteName;
-  console.log("siteName",siteName);
-  const status = "DELIVERED"
-  
-  if (!products || !Array.isArray(products) || products.length === 0) {
+  app.post('/update-delivery-data', async (req, res) => {
+    const { products, substation } = req.body.deliveryDetails;
+    console.log("products", products);
+    console.log("substation", substation);
+    const siteName = substation.siteName;
+    console.log("siteName", siteName);
+    const status = "DELIVERED"
+
+    if (!products || !Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ error: 'Invalid product data' });
-  }
+    }
 
-  if (!siteName) {
+    if (!siteName) {
       return res.status(400).json({ error: 'Site name is required' });
-  }
+    }
 
-  try {
+    try {
       const deliveryDate = new Date();
 
       for (const product of products) {
-          const { serialNumber, productName} = product;
+        const { serialNumber, productName } = product;
 
-          if (!serialNumber || !productName) {
-              return res.status(400).json({ error: 'Invalid product data format' });
+        if (!serialNumber || !productName) {
+          return res.status(400).json({ error: 'Invalid product data format' });
+        }
+
+        const updated = await inventory.update(
+          { siteName, deliveryDate, status },
+          {
+            where: {
+              serialNumber,
+              productName
+            }
           }
-
-          const updated = await inventory.update(
-              { siteName, deliveryDate ,status},
-              { 
-                  where: {
-                      serialNumber,
-                      productName
-                  }
-              }
-          );
+        );
       }
 
-      res.status(200).json({"message":"Data Updated Successfully"});
+      res.status(200).json({ "message": "Data Updated Successfully" });
 
-  } catch (error) {
+    } catch (error) {
       console.error('Error updating inventory:', error);
       res.status(500).json({ error: 'An error occurred while updating inventory items' });
-  }
-});
+    }
+  });
 
 
 

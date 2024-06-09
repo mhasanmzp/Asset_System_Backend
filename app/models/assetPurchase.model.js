@@ -7,11 +7,11 @@ module.exports = (sequelize, Sequelize) => {// No use
           oemName:{
             type:Sequelize.STRING
           },
-          categoryName:{
-            type:Sequelize.STRING
+          categoriesName:{
+            type:Sequelize.JSON
           },
-          productName:{
-            type:Sequelize.STRING
+          productsName:{
+            type:Sequelize.JSON
           },
           purchaseDate: {
             type: Sequelize.DATE,
@@ -19,8 +19,8 @@ module.exports = (sequelize, Sequelize) => {// No use
           quantity:{
             type:Sequelize.INTEGER,
           },
-          quantityUnit:{
-            type:Sequelize.STRING,
+          quantityUnits:{
+            type:Sequelize.JSON,
           }
         }, {
         timestamps: false,
