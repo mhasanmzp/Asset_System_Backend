@@ -83,43 +83,49 @@ module.exports = function (app) {
   //for multiple entries
   app.post('/asset-category', async (req, res) => {
     try {
-      const categories = req.body; // Assume categories is an array of objects [{ name: 'Category1', description: 'Description1' }, ...]
-
-      // Function to generate new categoryId
-      const getNewCategoryId = async () => {
-        const maxCategory = await category.max('categoryId');
-        return maxCategory ? maxCategory + 1 : 1000;
-      };
-
-      const newCategories = [];
-
-      for (const cat of categories) {
-        const { name, description } = cat;
-
-        // Check if name already exists
-        const existingCategory = await category.findOne({ where: { name } });
-        if (existingCategory) {
-          return res.status(400).json({ message: `Category name ${name} already exists` });
+        // Extract and validate the data array from the request body
+        const { data } = req.body;
+        if (!Array.isArray(data)) {
+            return res.status(400).json({ message: 'Invalid data format. Expected an array of objects.' });
         }
 
-        // Get new categoryId
-        const newCategoryId = await getNewCategoryId();
+        // Function to generate new categoryId
+        const getNewCategoryId = async () => {
+            const maxCategory = await category.max('categoryId');
+            return maxCategory ? maxCategory + 1 : 1000;
+        };
 
-        // Create new category
-        const newCategory = await category.create({
-          categoryId: newCategoryId,
-          name,
-          description
-        });
+        const newCategories = [];
 
-        newCategories.push(newCategory);
-      }
+        for (const cat of data) {
+            const name = cat.category;
+            if (!name) {
+                return res.status(400).json({ message: 'Category name is required.' });
+            }
 
-      res.status(201).json(newCategories);
+            // Check if name already exists
+            const existingCategory = await category.findOne({ where: { name } });
+            if (existingCategory) {
+                return res.status(400).json({ message: `Category name ${name} already exists.` });
+            }
+
+            // Get new categoryId
+            const newCategoryId = await getNewCategoryId();
+
+            // Create new category
+            const newCategory = await category.create({
+                categoryId: newCategoryId,
+                name
+            });
+
+            newCategories.push(newCategory);
+        }
+
+        res.status(201).json(newCategories);
     } catch (error) {
-      res.status(500).json({ message: 'Error creating categories', error });
+        res.status(500).json({ message: 'Error creating categories', error });
     }
-  });
+});
 
   app.post('/asset-categories-dropdown', async (req, res) => {
     try {
@@ -150,19 +156,19 @@ module.exports = function (app) {
   // API to create new stores
   app.post('/asset-stores', async (req, res) => {
     try {
+      const getNewStoreId = async () => {
+        const maxStoreId = await store.max('storeId');
+        return maxStoreId ? maxStoreId + 1 : 1000;
+      };
+
       const stores = req.body;
-
-      if (!Array.isArray(stores)) {
-        return res.status(400).json({ message: 'Input should be an array of store objects' });
-      }
-
       const newStores = [];
 
       for (const store of stores) {
-        const { storeName, location } = store;
+        const storeName = store;
 
         // Check if storeName already exists
-        const existingStore = await AssetStore.findOne({ where: { storeName } });
+        const existingStore = await store.findOne({ where: { storeName } });
         if (existingStore) {
           return res.status(400).json({ message: `Store name '${storeName}' already exists` });
         }
@@ -233,44 +239,39 @@ module.exports = function (app) {
   //for multiple engineer entry
   app.post('/asset-engineer', async (req, res) => {
     try {
-      const engineers = req.body; // Assume engineers is an array of objects [{ name: 'Engineer1', phone: '1234567890', email: 'email1@example.com' }, ...]
-
+      console.log("req.body",req.body);
+      const { data } = req.body; 
+      console.log(data);
       // Function to generate new engineerId
       const getNewEngineerId = async () => {
         const maxEngineer = await engineer.max('engineerId');
         return maxEngineer ? maxEngineer + 1 : 1000;
       };
-
+  
       const newEngineers = [];
-
-      for (const eng of engineers) {
-        const { name, phone, email } = eng;
-
-        // Check if email already exists
-        const existingEngineer = await engineer.findOne({ where: { email } });
-        if (existingEngineer) {
-          return res.status(400).json({ message: `Engineer email ${email} already exists` });
-        }
-
+  
+      for (const engData of data) {
+        console.log("engData",engData);
+        const name = engData.engineer; // Extract the name value
+  
         // Get new engineerId
         const newEngineerId = await getNewEngineerId();
-
+  
         // Create new engineer
         const newEngineer = await engineer.create({
           engineerId: newEngineerId,
-          name,
-          phone,
-          email
+          name
         });
-
+  
         newEngineers.push(newEngineer);
       }
-
+  
       res.status(201).json(newEngineers);
     } catch (error) {
       res.status(500).json({ message: 'Error creating engineers', error });
     }
   });
+  
 
 
   app.post('/asset-engineers-dropdown', async (req, res) => {
@@ -892,7 +893,7 @@ module.exports = function (app) {
         const purchaseId = item.purchaseId;
         if (purchaseLookup[purchaseId]) {
           purchaseLookup[purchaseId].totalItems++;
-          if (item.status === "IN_INVENTORY") {
+          if (item.status === "IN STOCK") {
             purchaseLookup[purchaseId].usableItems++;
           }
           if (item.status === "FAILED" || item.status === "REJECTED" || item.status === "FAULTY") {
@@ -942,84 +943,70 @@ module.exports = function (app) {
     }
   });
 
-  app.post('/assign-testing-manager', async (req, res) => {
-    const { purchaseId, categoryName, oemName, productName, purchaseDate, engineerName } = req.body;
-
-    try {
-      // Find the asset with status 'RECEIVED'
-      const asset = await inventory.findOne({
-        where: {
-          purchaseId,
-          categoryName,
-          oemName,
-          productName,
-          purchaseDate,
-          status: 'RECEIVED'
-        }
-      });
-
-      if (!asset) {
-        return res.status(404).json({ message: 'Asset not found or not in RECEIVED status' });
-      }
-
-      // Update the asset
-      asset.engineerName = engineerName;
-      asset.status = 'IN_QUALITY_CHECK'; // There is a typo here, correct it to 'IN_QUALITY_CHECK' if needed
-
-      await asset.save();
-
-      res.json({ message: 'Testing manager assigned and status updated', asset });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'An error occurred', error });
-    }
-  });
-
   // API route to assign a testing manager for multiple entries
-  app.post('/assign-testing-manager', async (req, res) => {
-    const { items, engineerName, status } = req.body;
-
+  app.post('/update-testing-data', async (req, res) => {
     try {
-      // Loop through each item and update the asset
-      const updatePromises = items.map(async (item) => {
-        const { purchaseId, categoryName, oemName, productName, purchaseDate, serialNumber } = item;
+        console.log(req.body);
+        const { items, engineerName } = req.body;
 
-        // Find the asset with status 'RECEIVED'
-        const asset = await AssetInventory.findOne({
-          where: {
-            purchaseId,
-            categoryName,
-            oemName,
-            productName,
-            purchaseDate,
-            serialNumber,
-            status: 'RECEIVED'
-          }
+        // Loop through each item and update the asset
+        const updatePromises = items.map(async (item) => {
+            console.log("item::::::", item);
+            const {categoryName,productName, serialNumber, testResult } = item;
+
+            try {
+                // Find the asset
+                const asset = await inventory.findOne({
+                    where: {
+                        categoryName,
+                        productName,
+                        serialNumber
+                    }
+                });
+
+                if (asset) {
+                    // Determine the new status based on the test result
+                    const newStatus = testResult === 'FAIL' ? 'REJECTED' : 'IN STOCK';
+
+                    // Update the asset
+                    await inventory.update(
+                        {
+                            engineerName,
+                            testingResult: testResult,
+                            status: newStatus
+                        },
+                        {
+                            where: {
+                                categoryName,
+                                productName,
+                                serialNumber
+                            }
+                        }
+                    );
+                } else {
+                    console.warn(`Asset not found for item: ${JSON.stringify(item)}`);
+                }
+            } catch (error) {
+                console.error(`Error updating asset for item: ${JSON.stringify(item)}`, error);
+            }
         });
 
-        if (asset) {
-          // Update the asset
-          asset.engineerName = engineerName;
-          asset.status = status; // Correct the typo if needed
+        // Wait for all updates to complete
+        await Promise.all(updatePromises);
 
-          await asset.save();
-        }
-      });
-
-      // Wait for all updates to complete
-      await Promise.all(updatePromises);
-
-      res.json({ message: 'Testing manager assigned and status updated for all items' });
+        res.json({ message: 'Testing data updated for all items' });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'An error occurred', error });
+        console.error(error);
+        res.status(500).json({ message: 'An error occurred', error });
     }
-  });
+});
+
+
 
   app.post('/delivery-product-list', async (req, res) => {
     try {
       const { category } = req.body;
-      let whereClause = { status: 'IN_INVENTORY' };
+      let whereClause = { status: 'IN STOCK' };
 
       if (category) {
         whereClause.categoryName = category;
@@ -1082,17 +1069,50 @@ module.exports = function (app) {
     }
   });
 
+  // Fetch assets with specific fields where status is RECEIVED
+app.post('/quality-assurance-dashboard', async (req, res) => {
+  try {
+      const assets = await inventory.findAll({
+          attributes: ['categoryName', 'oemName', 'productName', 'serialNumber', 'challanNumber', 'status'],
+          where: {
+              status: 'RECEIVED'
+          }
+      });
 
+      res.status(200).json(assets);
+  } catch (error) {
+      res.status(500).json({ message: 'Error fetching assets', error: error.message });
+  }
+});
 
+app.post('/scrap-managemet-dashboard', async (req, res) => {
+  try {
+      const assets = await inventory.findAll({
+          attributes: ['categoryName', 'oemName', 'productName', 'serialNumber', 'challanNumber', 'status'],
+          where: {
+              status: 'SCRAP'
+          }
+      });
 
+      res.status(200).json(assets);
+  } catch (error) {
+      res.status(500).json({ message: 'Error fetching assets', error: error.message });
+  }
+});
+app.post('/grid-view-dashboard', async (req, res) => {
+  try {
+      const assets = await inventory.findAll({
+          attributes: ['categoryName', 'oemName', 'productName', 'siteName','serialNumber','status','warrantyStartDate','warrantyEndDate','deliveryDate'],
+          where: {
+              status: 'DELIVERED'
+          }
+      });
 
-
-
-
-
-
-
-
+      res.status(200).json(assets);
+  } catch (error) {
+      res.status(500).json({ message: 'Error fetching assets', error: error.message });
+  }
+});
 
 
   app.use("/", apiRoutes);
