@@ -156,42 +156,44 @@ module.exports = function (app) {
   // API to create new stores
   app.post('/asset-stores', async (req, res) => {
     try {
+      console.log(req.body);
       const getNewStoreId = async () => {
         const maxStoreId = await store.max('storeId');
         return maxStoreId ? maxStoreId + 1 : 1000;
       };
-
-      const stores = req.body;
+  
+      const { data } = req.body;
       const newStores = [];
-
-      for (const store of stores) {
-        const storeName = store;
-
+  
+      for (const d of data) {
+        const { store: storeName } = d;
+        console.log(storeName);
+  
         // Check if storeName already exists
         const existingStore = await store.findOne({ where: { storeName } });
         if (existingStore) {
           return res.status(400).json({ message: `Store name '${storeName}' already exists` });
         }
-
+  
         // Get new storeId
         const newStoreId = await getNewStoreId();
-
+  
         // Create new store object
         newStores.push({
-          storeId: newStoreId.toString(),
-          storeName,
-          location
+          storeId: newStoreId,
+          storeName
         });
       }
-
+  
       // Bulk create new stores
-      await AssetStore.bulkCreate(newStores);
-
+      await store.bulkCreate(newStores);
+  
       res.status(201).json({ message: 'Stores created successfully', stores: newStores });
     } catch (error) {
       res.status(500).json({ message: 'Error creating stores', error });
     }
   });
+  
 
   // API to get store IDs and names
   app.get('/stores-dropdown', async (req, res) => {
@@ -373,106 +375,45 @@ module.exports = function (app) {
     }
   });
 
-  // Routes for AssetOem
-  // app.post('/asset-oem', async (req, res) => {
-  //   try {
-  //     const { oemName, phone, email, address } = req.body;
-  //     // Function to generate new oemId
-  //     const getNewOemId = async () => {
-  //       const maxOem = await oem.max('oemId');
-  //       return maxOem ? maxOem + 1 : 1000;
-  //     };
 
-  //     // Check if email already exists
-  //     const existingOem = await oem.findOne({ where: { email } });
-  //     if (existingOem) {
-  //       return res.status(400).json({ message: 'OEM email already exists' });
-  //     }
-
-  //     // Get new oemId
-  //     const newOemId = await getNewOemId();
-
-  //     // Create new OEM
-  //     const newOem = await oem.create({
-  //       oemId: newOemId,
-  //       oemName,
-  //       phone,
-  //       email,
-  //       address
-  //     });
-
-  //     res.status(201).json(newOem);
-  //   } catch (error) {
-  //     res.status(500).json({ message: 'Error creating OEM', error });
-  //   }
-  // });
   //for multiple oems
   app.post('/asset-oem', async (req, res) => {
     try {
-      const oems = req.body; // Assume oems is an array of objects [{ oemName: 'OEM1', phone: '1234567890', email: 'email1@example.com', address: 'Address1' }, ...]
 
-      // Function to generate new oemId
-      const getNewOemId = async () => {
-        const maxOem = await oem.max('oemId');
-        return maxOem ? maxOem + 1 : 1000;
+        const { data } = req.body; 
+        console.log("data", data);
+        const getNewOemId = async () => {
+          const maxOem = await oem.max('oemId');
+          return maxOem ? maxOem + 1 : 1000;
       };
 
-      const newOems = [];
 
-      for (const o of oems) {
-        const { oemName, phone, email, address } = o;
+        for (const o of data) {
+            const { oem:oemName } = o;
 
-        // Check if email already exists
-        const existingOem = await oem.findOne({ where: { email } });
-        if (existingOem) {
-          return res.status(400).json({ message: `OEM email ${email} already exists` });
+            // Check if email already exists
+            const existingOem = await oem.findOne({ where: { oemName } });
+            if (existingOem) {
+                return res.status(400).json({ message: `OEM Name ${oemName} already exists` });
+            }
+
+            // Get new oemId
+            const newOemId = await getNewOemId();
+
+            // Create new OEM
+            const newOem = await oem.create({
+                oemId: newOemId,
+                oemName
+            });
+
         }
 
-        // Get new oemId
-        const newOemId = await getNewOemId();
-
-        // Create new OEM
-        const newOem = await oem.create({
-          oemId: newOemId,
-          oemName,
-          phone,
-          email,
-          address
-        });
-
-        newOems.push(newOem);
-      }
-
-      res.status(201).json(newOems);
+        res.status(201).json({"message":"Successfully Created"});
     } catch (error) {
-      res.status(500).json({ message: 'Error creating OEMs', error });
+        res.status(500).json({ message: 'Error creating OEMs', error });
     }
-  });
+});
 
-
-  app.put('/asset-oem/:id', async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { oemName, phone, email, address } = req.body;
-
-      // Find the OEM by id
-      const oem = await oem.findByPk(id);
-      if (!oem) {
-        return res.status(404).json({ message: 'OEM not found' });
-      }
-
-      // Update the OEM
-      oem.oemName = oemName || oem.oemName;
-      oem.phone = phone || oem.phone;
-      oem.email = email || oem.email;
-      oem.address = address || oem.address;
-      await oem.save();
-
-      res.status(200).json(oem);
-    } catch (error) {
-      res.status(500).json({ message: 'Error updating OEM', error });
-    }
-  });
 
   app.post('/asset-oems-dropdown', async (req, res) => {
     try {
@@ -523,45 +464,45 @@ module.exports = function (app) {
   //for multiple project
   app.post('/asset-project', async (req, res) => {
     try {
-      const projects = req.body; // Assume projects is an array of objects [{ projectName: 'Project1', description: 'Description1', startDate: '2024-06-01', endDate: '2024-06-30' }, ...]
-
+      console.log(req.body);
+      const { data } = req.body; 
+  
       // Function to generate new projectId
       const getNewProjectId = async () => {
         const maxProject = await project.max('projectId');
         return maxProject ? maxProject + 1 : 1000;
       };
-
+  
       const newProjects = [];
-
-      for (const p of projects) {
-        const { projectName, description, startDate, endDate } = p;
-
+  
+      for (const p of data) {
+        const { project: projectName } = p;
+        console.log(projectName);
+  
         // Check if projectName already exists
         const existingProject = await project.findOne({ where: { projectName } });
         if (existingProject) {
           return res.status(400).json({ message: `Project name ${projectName} already exists` });
         }
-
+  
         // Get new projectId
         const newProjectId = await getNewProjectId();
-
+  
         // Create new project
         const newProject = await project.create({
           projectId: newProjectId,
-          projectName,
-          description,
-          startDate,
-          endDate
+          projectName
         });
-
+  
         newProjects.push(newProject);
       }
-
+  
       res.status(201).json(newProjects);
     } catch (error) {
       res.status(500).json({ message: 'Error creating projects', error });
     }
   });
+  
 
 
   app.put('/asset-project/:id', async (req, res) => {
@@ -637,7 +578,8 @@ module.exports = function (app) {
   //for multiple sites
   app.post('/asset-site', async (req, res) => {
     try {
-      const sites = req.body; // Assume sites is an array of objects [{ siteName: 'Site1', sitePhone: '1234567890', siteEmail: 'email1@example.com', location: 'Location1' }, ...]
+      const {data} = req.body; 
+      console.log(req.body);
 
       // Function to generate new siteId
       const getNewSiteId = async () => {
@@ -647,8 +589,8 @@ module.exports = function (app) {
 
       const newSites = [];
 
-      for (const s of sites) {
-        const { siteName, sitePhone, siteEmail, location } = s;
+      for (const s of data) {
+        const { site: siteName} = s;
 
         // Check if siteName already exists
         const existingSite = await site.findOne({ where: { siteName } });
@@ -662,10 +604,7 @@ module.exports = function (app) {
         // Create new site
         const newSite = await site.create({
           siteId: newSiteId,
-          siteName,
-          sitePhone,
-          siteEmail,
-          location
+          siteName
         });
 
         newSites.push(newSite);
@@ -775,8 +714,8 @@ module.exports = function (app) {
         // Generate a unique purchaseId
         const purchaseId = await generatePurchaseId();
 
-        const warrantyStartDate = grnDate;
-        const warrantyEndDate = new Date(grnDate);
+        const warrantyStartDate = challanDate;
+        const warrantyEndDate = new Date(challanDate);
         warrantyEndDate.setMonth(warrantyEndDate.getMonth() + warrantyPeriodMonths);
 
         categoriesName[`Category${categoryCount}`] = categoryName;
@@ -921,6 +860,8 @@ module.exports = function (app) {
 
   app.post('/getItemsByPurchaseId', async (req, res) => {
     const { purchaseId } = req.body;
+    console.log(req.body);
+    console.log(purchaseId);
 
     try {
       if (!purchaseId) {
@@ -928,7 +869,7 @@ module.exports = function (app) {
       }
       //attributes: ['categoryName', 'oemName', 'productName', 'status', 'warrantyStartDate', 'warrantyEndDate', 'serialNumber', 'inventoryStoreName', 'storeLocation','challanNumber']
 
-      const items = await AssetInventory.findAll({
+      const items = await inventory.findAll({
         where: { purchaseId },
         
       });
@@ -1099,6 +1040,7 @@ app.post('/scrap-managemet-dashboard', async (req, res) => {
       res.status(500).json({ message: 'Error fetching assets', error: error.message });
   }
 });
+
 app.post('/grid-view-dashboard', async (req, res) => {
   try {
       const assets = await inventory.findAll({
@@ -1108,11 +1050,129 @@ app.post('/grid-view-dashboard', async (req, res) => {
           }
       });
 
-      res.status(200).json(assets);
+      // Process the dates to remove the time part
+      const processedAssets = assets.map(asset => {
+          const warrantyStartDate = asset.warrantyStartDate ? asset.warrantyStartDate.toISOString().split('T')[0] : null;
+          const warrantyEndDate = asset.warrantyEndDate ? asset.warrantyEndDate.toISOString().split('T')[0] : null;
+          const deliveryDate = asset.deliveryDate ? asset.deliveryDate.toISOString().split('T')[0] : null;
+
+          return {
+              ...asset.dataValues,
+              warrantyStartDate,
+              warrantyEndDate,
+              deliveryDate
+          };
+      });
+
+      res.status(200).json(processedAssets);
   } catch (error) {
       res.status(500).json({ message: 'Error fetching assets', error: error.message });
   }
 });
+
+app.post('/faulty-asset-action', async (req, res) => {
+  console.log("req.body",req.body);
+  const {assetsData} = req.body;
+
+  if (!Array.isArray(assetsData) || assetsData.length === 0) {
+      return res.status(400).json({ message: 'Invalid or empty data array' });
+  }
+
+  try {
+      for (const assetData of assetsData) {
+          const {productName, siteName, serialNumber, action } = assetData;
+
+          // Determine the new status based on the action
+          let newStatus;
+          switch(action) {
+              case 'Mark as Scrap':
+                  newStatus = 'SCRAP';
+                  break;
+              case 'Sent Back to OEM':
+                  newStatus = 'RETURN TO OEM';
+                  break;
+              case 'Sent Back to the Site':
+                  newStatus = 'RETURN TO SITE';
+                  break;
+              case 'Delivered':
+                newStatus = "DELIVERED"   
+              default:
+                  // Skip invalid actions
+                  continue;
+          }
+
+          // Update the asset status using Sequelize's update method
+          await inventory.update(
+              { status: newStatus },
+              {
+                  where: {
+                      productName,
+                      siteName,
+                      serialNumber
+                  }
+              }
+          );
+      }
+
+      res.status(200).json({ message: 'Assets status updated successfully' });
+  } catch (error) {
+      res.status(500).json({ message: 'Error updating asset statuses', error: error.message });
+  }
+});
+
+app.post('/faulty-asset-dashboard', async (req, res) => {
+  try {
+    const assets = await inventory.findAll({
+        attributes: ['serialNumber', 'productName', 'warrantyStartDate', 'warrantyEndDate', 'siteName', 'status'],
+        where: {
+            status: ['DELIVERED', 'RETURN TO OEM', 'RETURN TO SITE', 'SCRAP']
+        }
+    });
+
+    const formattedAssets = assets.map(asset => ({
+        serialNumber: asset.serialNumber,
+        productName: asset.productName,
+        warrantyStartDate: asset.warrantyStartDate ? asset.warrantyStartDate.toISOString().split('T')[0] : null,
+        warrantyEndDate: asset.warrantyEndDate ? asset.warrantyEndDate.toISOString().split('T')[0] : null,
+        siteName: asset.siteName,
+        status: asset.status
+    }));
+
+    res.json(formattedAssets);
+} catch (error) {
+    res.status(500).send({
+        message: error.message || "Some error occurred while retrieving assets."
+    });
+}
+});
+
+app.post('/scrap-management-action', async (req, res) => {
+  try {
+  const {serialNumber,oemName,productName,status,categoryName,challanNumber} = req.body;
+          const asset = await inventory.findOne({
+              where: { serialNumber, productName,oemName,categoryName,challanNumber }
+          });
+
+          if (!asset) {
+              return res.status(404).json({ error: `Asset with serial number ${serialNumber} and product name ${productName} not found` });
+          }
+
+          if (status === 'In Stock') {
+              await inventory.update(
+                  { status: 'IN STOCK' },
+                  { where: { serialNumber, productName,oemName,categoryName,challanNumber } }
+              );
+          }
+      
+
+      res.status(200).json({ message: 'Assets updated successfully' });
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+
+
 
 
   app.use("/", apiRoutes);

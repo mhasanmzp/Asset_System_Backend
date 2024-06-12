@@ -1,3 +1,5 @@
+const { unique } = require("underscore");
+
 module.exports = (sequelize, Sequelize) => {
     const AssetInventory = sequelize.define('AssetInventory', {
         id: {
@@ -52,9 +54,10 @@ module.exports = (sequelize, Sequelize) => {
         },
         serialNumber: {
             type: Sequelize.STRING,
+            unique:true
         },
         status: {
-            type: Sequelize.ENUM('RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED'),
+            type: Sequelize.ENUM('RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED','RETURN TO OEM','RETURN TO SITE'),
             allowNull: false,
             default: 'RECEIVED'
         },
@@ -82,7 +85,7 @@ module.exports = (sequelize, Sequelize) => {
         },
         challanNumber:{
             type:Sequelize.STRING
-        }
+        },
     }, {
         timestamps: false,
     });
