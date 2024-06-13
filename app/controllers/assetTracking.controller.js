@@ -16,10 +16,10 @@ const category = db.AssetCategory
 const challan = db.AssetChallan
 const engineer = db.AssetEngineer
 const inventory = db.AssetInventory
-const item = db.AssetItem
+const client = db.AssetClient
 const model = db.AssetModel
 const store = db.AssetStore
-const movement = db.AssetMovement
+const warehouse = db.AssetWarehouse
 const oem = db.AssetOem
 const project = db.AssetProject
 const purchase = db.AssetPurchase
@@ -196,9 +196,9 @@ module.exports = function (app) {
   
 
   // API to get store IDs and names
-  app.get('/stores-dropdown', async (req, res) => {
+  app.post('/stores-dropdown', async (req, res) => {
     try {
-      const stores = await AssetStore.findAll({
+      const stores = await store.findAll({
         attributes: ['storeId', 'storeName']
       });
       res.status(200).send(stores);
@@ -273,8 +273,6 @@ module.exports = function (app) {
       res.status(500).json({ message: 'Error creating engineers', error });
     }
   });
-  
-
 
   app.post('/asset-engineers-dropdown', async (req, res) => {
     try {
@@ -666,7 +664,7 @@ module.exports = function (app) {
     }
   });
 
-  app.post('/asset-inventory-grn', async (req, res) => {
+ app.post('/old-asset-inventory-grn', async (req, res) => {
     try {
       console.log("req.body:::::", req.body);
       // Function to generate a unique 6-digit purchaseId
@@ -680,6 +678,7 @@ module.exports = function (app) {
         const maxChallanId = await challan.max('challanId');
         return maxChallanId ? parseInt(maxChallanId) + 1 : 1000;
       };
+
       const {
         grnDate,
         storeName,
@@ -793,7 +792,260 @@ module.exports = function (app) {
     } catch (error) {
       res.status(500).json({ message: 'Error creating entries', error });
     }
-  });//important
+  });//important 
+
+  app.post('/asset-inventory-grn', async (req, res) => {
+    try {
+      console.log("req.body:::::", req.body);
+  
+      // Function to generate a unique 6-digit purchaseId
+      const generatePurchaseId = async (oemName) => {
+        const randomNumber = Math.floor(100000 + Math.random() * 900000);
+        return randomNumber;
+        };
+        
+        const purchaseId = await generatePurchaseId();
+      // Function to generate a unique challanId
+      const generateChallanId = async () => {
+        const maxChallanId = await challan.max('challanId');
+        return maxChallanId ? parseInt(maxChallanId) + 1 : 1000;
+      };
+  
+      const {
+        grnDate,
+        storeName,
+        oemName,
+        challanNo,
+        challanDate,
+        materialRows
+      } = req.body;
+  
+      // Generate challanId
+      const challanId = await generateChallanId();
+  
+      const categoriesName = {};
+      const productsName = {};
+      const quantityUnits = {};
+      const newEntries = [];
+  
+      let categoryCount = 1;
+      let productCount = 1;
+  
+      for (const material of materialRows) {
+        const {
+          categoryName,
+          productName,
+          quantity,
+          quantityUnit,
+          warrantyPeriodMonths,
+          storeLocation,
+          serialNumbers
+        } = material;
+        
+        // Generate a unique purchaseId
+  
+        const warrantyStartDate = challanDate;
+        const warrantyEndDate = new Date(challanDate);
+        warrantyEndDate.setMonth(warrantyEndDate.getMonth() + warrantyPeriodMonths);
+  
+        categoriesName[`Category${categoryCount}`] = categoryName;
+        productsName[`Product${productCount}`] = productName;
+        quantityUnits[`QuantityUnit${productCount}`] = quantityUnit;
+        categoryCount++;
+        productCount++;
+  
+        if (["Units", "KG", "Metre", "Grams", "Pieces", "Dozen", "Box", "Bag"].includes(quantityUnit)) {
+          // Create multiple entries with serialNumbers
+          for (const serialNumber of serialNumbers) {
+            const newEntry = await inventory.create({
+              oemName,
+              categoryName,
+              productName,
+              inventoryStoreName: storeName,
+              quantityUnit,
+              storeLocation,
+              purchaseDate: grnDate,
+              serialNumber,
+              warrantyPeriodMonths,
+              warrantyStartDate,
+              warrantyEndDate,
+              purchaseId,
+              status: "RECEIVED",
+              challanNumber: challanNo
+            });
+            newEntries.push(newEntry);
+          }
+        } else {
+          // Create a single entry without serialNumbers
+          const newEntry = await inventory.create({
+            categoryName,
+            productName,
+            inventoryStoreName: storeName,
+            quantity,
+            quantityUnit,
+            storeLocation,
+            purchaseDate: grnDate,
+            serialNumber: null, // Assuming serialNumber is not nullable
+            warrantyPeriodMonths,
+            warrantyStartDate,
+            warrantyEndDate,
+            purchaseId,
+            status: "RECEIVED",
+            challanId: challanNo
+          });
+          newEntries.push(newEntry);
+        }
+      }
+  
+      // Create an entry in AssetChallan
+      const newChallan = await challan.create({
+        challanId: challanId.toString(),
+        challanNumber: challanNo,
+        challanType: 'INWARD',
+        categoriesName,
+        productsName,
+        date: challanDate,
+        details: JSON.stringify(req.body),
+        purchaseId
+      });
+  
+      // Create an entry in AssetPurchase
+      const newPurchase = await purchase.create({
+        purchaseId: newEntries[0].purchaseId, // Assuming all entries have the same purchaseId
+        oemName,
+        categoriesName,
+        productsName,
+        purchaseDate: grnDate,
+        quantity: materialRows.reduce((acc, material) => acc + material.quantity, 0),
+        quantityUnits,
+      });
+  
+      res.status(201).json({ message: "Entries Created Successfully"});
+    } catch (error) {
+      res.status(500).json({ message: 'Error creating entries', error });
+    }
+  });
+
+  app.post('/asset-inventory-update-grn', async (req, res) => {
+    try {
+      console.log("req.body:::::", req.body);
+  
+      // Function to generate a unique 6-digit purchaseId
+      // const generatePurchaseId = async (oemName) => {
+      //   const randomNumber = Math.floor(100000 + Math.random() * 900000);
+      //   return randomNumber;
+      // };
+  
+      // Function to generate a unique challanId
+      const generateChallanId = async () => {
+        const maxChallanId = await challan.max('challanId');
+        return maxChallanId ? parseInt(maxChallanId) + 1 : 1000;
+      };
+      const grnDate = new Date()
+  
+      const {
+        purchaseId,
+        storeName,
+        oemName,
+        challanNo,
+        challanDate,
+        materialRows
+      } = req.body;
+  
+      // Generate challanId
+      const challanId = await generateChallanId();
+  
+      const categoriesName = {};
+      const productsName = {};
+      const quantityUnits = {};
+      const newEntries = [];
+  
+      let categoryCount = 1;
+      let productCount = 1;
+  
+      for (const material of materialRows) {
+        const {
+          categoryName,
+          productName,
+          quantity,
+          quantityUnit,
+          warrantyPeriodMonths,
+          storeLocation,
+          serialNumbers
+        } = material;
+  
+        // Generate a unique purchaseId
+  
+        const warrantyStartDate = challanDate;
+        const warrantyEndDate = new Date(challanDate);
+        warrantyEndDate.setMonth(warrantyEndDate.getMonth() + warrantyPeriodMonths);
+  
+        categoriesName[`Category${categoryCount}`] = categoryName;
+        productsName[`Product${productCount}`] = productName;
+        quantityUnits[`QuantityUnit${productCount}`] = quantityUnit;
+        categoryCount++;
+        productCount++;
+  
+        if (["Units", "KG", "Metre", "Grams", "Pieces", "Dozen", "Box", "Bag"].includes(quantityUnit)) {
+          // Create multiple entries with serialNumbers
+          for (const serialNumber of serialNumbers) {
+            const newEntry = await inventory.create({
+              oemName,
+              categoryName,
+              productName,
+              inventoryStoreName: storeName,
+              quantityUnit,
+              storeLocation,
+              purchaseDate: grnDate,
+              serialNumber,
+              warrantyPeriodMonths,
+              warrantyStartDate,
+              warrantyEndDate,
+              purchaseId,
+              status: "RECEIVED",
+              challanNumber: challanNo
+            });
+            newEntries.push(newEntry);
+          }
+        } else {
+          // Create a single entry without serialNumbers
+          const newEntry = await inventory.create({
+            categoryName,
+            productName,
+            inventoryStoreName: storeName,
+            quantity,
+            quantityUnit,
+            storeLocation,
+            purchaseDate: grnDate,
+            serialNumber: null, // Assuming serialNumber is not nullable
+            warrantyPeriodMonths,
+            warrantyStartDate,
+            warrantyEndDate,
+            purchaseId,
+            status: "RECEIVED",
+            challanId: challanNo
+          });
+          newEntries.push(newEntry);
+        }
+      }
+  
+      // Create an entry in AssetChallan
+      const newChallan = await challan.create({
+        challanId: challanId.toString(),
+        challanNumber: challanNo,
+        challanType: 'INWARD',
+        categoriesName,
+        productsName,
+        date: challanDate,
+        details: JSON.stringify(req.body),
+        purchaseId
+      });
+  
+      res.status(201).json({ message: "Entries Created Successfully"});
+    } catch (error) {
+      res.status(500).json({ message: 'Error creating entries', error });
+    }
+  });
 
   app.post('/asset-inventory-dashboard', async (req, res) => {
     try {
@@ -809,8 +1061,8 @@ module.exports = function (app) {
         raw: true
       });
 
-      console.log(purchaseData);
-      console.log(inventoryData);
+      // console.log(purchaseData);
+      // console.log(inventoryData);
 
       // Create a lookup table for purchase data
       const purchaseLookup = {};
@@ -941,8 +1193,6 @@ module.exports = function (app) {
         res.status(500).json({ message: 'An error occurred', error });
     }
 });
-
-
 
   app.post('/delivery-product-list', async (req, res) => {
     try {

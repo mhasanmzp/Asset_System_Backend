@@ -57,7 +57,7 @@ module.exports = (sequelize, Sequelize) => {
             unique:true
         },
         status: {
-            type: Sequelize.ENUM('RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED','RETURN TO OEM','RETURN TO SITE'),
+            type: Sequelize.ENUM('RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED','RETURN TO OEM','RETURN TO SITE','SENT TO CLIENT WAREHOUSE','DELIVERED TO SITE'),
             allowNull: false,
             default: 'RECEIVED'
         },
@@ -86,6 +86,19 @@ module.exports = (sequelize, Sequelize) => {
         challanNumber:{
             type:Sequelize.STRING
         },
+        projectStore:{
+            type:Sequelize.STRING
+        },
+        client:{
+            type:Sequelize.STRING
+        },
+        clientWarehouse:{
+            type:Sequelize.STRING
+        },
+        faultyRemark:{
+        type:Sequelize.TEXT
+        }
+
     }, {
         timestamps: false,
     });

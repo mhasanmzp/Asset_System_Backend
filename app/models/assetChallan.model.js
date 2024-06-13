@@ -28,6 +28,9 @@ module.exports = (sequelize, Sequelize) => {
           },
           details: {
             type: Sequelize.TEXT
+          },
+          purchaseId:{
+            type:Sequelize.STRING
           }
   
     }, {
