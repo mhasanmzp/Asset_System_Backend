@@ -11,9 +11,6 @@ module.exports = (sequelize, Sequelize) => {
           },
         name: {
             type: Sequelize.STRING,
-          },
-          description: {
-            type: Sequelize.STRING,
           }
   
     }, {
@@ -21,4 +18,4 @@ module.exports = (sequelize, Sequelize) => {
     });
     AssetClient.sync({ alter: true });
     return AssetClient;
-  }
+}

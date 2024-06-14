@@ -1,12 +1,8 @@
 const express = require("express");
 const Sequelize = require("sequelize");
 const nodemailer = require("nodemailer");
-const { QueryTypes } = require("sequelize");
-const { sequelize, Teams } = require("../../config/db.config.js");
-const Op = Sequelize.Op;
 const smtp = require("../../config/main.js");
 const db = require("../../config/db.config.js");
-const path = require("path");
 var apiRoutes = express.Router();
 const fs = require('fs');
 const { isNull, concat, entries } = require("lodash");
@@ -1145,7 +1141,7 @@ module.exports = function (app) {
         // Loop through each item and update the asset
         const updatePromises = items.map(async (item) => {
             console.log("item::::::", item);
-            const {categoryName,productName, serialNumber, testResult } = item;
+            const {categoryName,productName, serialNumber, testResult,remark:faultyRemark } = item;
 
             try {
                 // Find the asset
@@ -1166,7 +1162,8 @@ module.exports = function (app) {
                         {
                             engineerName,
                             testingResult: testResult,
-                            status: newStatus
+                            status: newStatus,
+                            faultyRemark
                         },
                         {
                             where: {
@@ -1194,7 +1191,7 @@ module.exports = function (app) {
     }
 });
 
-  app.post('/delivery-product-list', async (req, res) => {
+app.post('/delivery-product-list', async (req, res) => {
     try {
       const { category } = req.body;
       let whereClause = { status: 'IN STOCK' };
@@ -1213,22 +1210,39 @@ module.exports = function (app) {
       console.error('Error fetching inventory items:', error);
       res.status(500).json({ error: 'An error occurred while fetching inventory items' });
     }
-  });
+});
 
-  app.post('/update-delivery-data', async (req, res) => {
-    const { products, substation } = req.body.deliveryDetails;
-    console.log("products", products);
-    console.log("substation", substation);
-    const siteName = substation.siteName;
-    console.log("siteName", siteName);
-    const status = "DELIVERED"
+app.post('/delivery-product-list-s2', async (req, res) => {
+    try {
+      const { clientName:client } = req.body;
+      let whereClause = { status: 'SENT TO CLIENT WAREHOUSE' };
+
+      if (client) {
+        whereClause.client =client ;
+      }
+
+      const inventoryItems = await inventory.findAll({
+        where: whereClause,
+        attributes: ['serialNumber', 'productName', 'status', 'categoryName','client','clientWarehouse']
+      });
+
+      res.status(200).json({ "productData": inventoryItems });
+    } catch (error) {
+      console.error('Error fetching inventory items:', error);
+      res.status(500).json({ error: 'An error occurred while fetching inventory items' });
+    }
+});
+
+app.post('/update-delivery-data-s1', async (req, res) => {
+    console.log(req.body);
+    const { deliveryDetails} = req.body;
+    const status = "SENT TO CLIENT WAREHOUSE"
+    const {products} = deliveryDetails ;
+    const {client} = deliveryDetails;
+    const {warehouse: clientWarehouse} = deliveryDetails
 
     if (!products || !Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ error: 'Invalid product data' });
-    }
-
-    if (!siteName) {
-      return res.status(400).json({ error: 'Site name is required' });
     }
 
     try {
@@ -1242,7 +1256,7 @@ module.exports = function (app) {
         }
 
         const updated = await inventory.update(
-          { siteName, deliveryDate, status },
+          { client, clientWarehouse,deliveryDate, status },
           {
             where: {
               serialNumber,
@@ -1258,7 +1272,48 @@ module.exports = function (app) {
       console.error('Error updating inventory:', error);
       res.status(500).json({ error: 'An error occurred while updating inventory items' });
     }
-  });
+});
+
+app.post('/update-delivery-data-s2', async (req, res) => {
+    console.log(req.body);
+    const { deliveryDetails} = req.body;
+    const status = "DELIVERED TO SITE";
+    const {products} = deliveryDetails ;
+    const {site} = deliveryDetails;
+    const {siteName} = site; 
+
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ error: 'Invalid product data' });
+    }
+
+    try {
+      const deliveryDate = new Date();
+
+      for (const product of products) {
+        const { serialNumber, productName } = product;
+
+        if (!serialNumber || !productName) {
+          return res.status(400).json({ error: 'Invalid product data format' });
+        }
+
+        const updated = await inventory.update(
+          { siteName,status },
+          {
+            where: {
+              serialNumber,
+              productName
+            }
+          }
+        );
+      }
+
+      res.status(200).json({ "message": "Data Updated Successfully" });
+
+    } catch (error) {
+      console.error('Error updating inventory:', error);
+      res.status(500).json({ error: 'An error occurred while updating inventory items' });
+    }
+});
 
   // Fetch assets with specific fields where status is RECEIVED
 app.post('/quality-assurance-dashboard', async (req, res) => {
@@ -1293,11 +1348,15 @@ app.post('/scrap-managemet-dashboard', async (req, res) => {
 
 app.post('/grid-view-dashboard', async (req, res) => {
   try {
-      const assets = await inventory.findAll({
-          attributes: ['categoryName', 'oemName', 'productName', 'siteName','serialNumber','status','warrantyStartDate','warrantyEndDate','deliveryDate'],
-          where: {
-              status: 'DELIVERED'
+    const assets = await inventory.findAll({
+      attributes: ['categoryName', 'oemName', 'productName', 'siteName', 'serialNumber', 'status', 'warrantyStartDate', 'warrantyEndDate', 'deliveryDate', 'client', 'clientWarehouse'],
+      where: {
+          status: {
+              [Sequelize.Op.in]: ['RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED','RETURN TO OEM','RETURN TO CLIENT','SENT TO CLIENT WAREHOUSE','DELIVERED TO SITE']  // Example values
           }
+      }
+
+  
       });
 
       // Process the dates to remove the time part
@@ -1342,10 +1401,10 @@ app.post('/faulty-asset-action', async (req, res) => {
                   newStatus = 'RETURN TO OEM';
                   break;
               case 'Sent Back to the Site':
-                  newStatus = 'RETURN TO SITE';
+                  newStatus = 'RETURN TO CLIENT';
                   break;
               case 'Delivered':
-                newStatus = "DELIVERED"   
+                newStatus = "DELIVERED TO SITE";
               default:
                   // Skip invalid actions
                   continue;
@@ -1421,6 +1480,115 @@ app.post('/scrap-management-action', async (req, res) => {
   }
 });
 
+// API to store multiple AssetClient entries
+app.post('/asset-client', async (req, res) => {
+  try {
+      const { data } = req.body;
+      console.log(req.body);
+
+      // Function to generate new clientId
+      const getNewClientId = async () => {
+          const maxClient = await client.max('clientId');
+          return maxClient ? maxClient + 1 : 1000;
+      };
+
+      const newClients = [];
+
+      for (const c of data) {
+          const { client: name} = c;
+
+          // Check if clientId already exists
+          const existingClient = await client.findOne({ where: { name } });
+          if (existingClient) {
+              return res.status(400).json({ message: `Client Name ${name} already exists` });
+          }
+
+          // Get new clientId if not provided
+          const newClientId = await getNewClientId();
+
+          // Create new client
+          const newClient = await client.create({
+              clientId: newClientId,
+              name
+          });
+
+          newClients.push(newClient);
+      }
+
+      res.status(201).json(newClients);
+  } catch (error) {
+      res.status(500).json({ message: 'Error creating clients', error });
+  }
+});
+
+
+// API to store multiple AssetWarehouse entries
+app.post('/asset-warehouse', async (req, res) => {
+  try {
+      const { data } = req.body;
+      console.log(req.body);
+
+      // Function to generate new id
+      const getNewId = async () => {
+          const maxId = await warehouse.max('warehouseId');
+          return maxId ? maxId + 1 : 1000;
+      };
+
+      const newWarehouses = [];
+
+      for (const w of data) {
+          const { warehouse: name, client: clientName } = w;
+
+          // Check if name already exists
+          const existingWarehouse = await warehouse.findOne({ where: { name } });
+          if (existingWarehouse) {
+              return res.status(400).json({ message: `Warehouse name ${name} already exists` });
+          }
+
+          // Get new id
+          const newId = await getNewId();
+
+          // Create new warehouse
+          const newWarehouse = await warehouse.create({
+              warehouseId: newId,
+              name,
+              clientName
+          });
+
+          newWarehouses.push(newWarehouse);
+      }
+
+      res.status(201).json(newWarehouses);
+  } catch (error) {
+      res.status(500).json({ message: 'Error creating warehouses', error });
+  }
+});
+
+
+// API to retrieve all AssetClient entries
+app.post('/asset-client-dropdown', async (req, res) => {
+  try {
+    const assetClients = await client.findAll({
+      attributes: ['clientId', 'name']
+  });
+  
+      res.status(200).send(assetClients);
+  } catch (error) {
+      res.status(500).send(error);
+  }
+});
+
+// API to retrieve all AssetWarehouse entries
+app.post('/asset-warehouse-dropdown', async (req, res) => {
+  try {
+    console.log(req.body);
+    const {clientName} = req.body;
+      const assetWarehouses = await warehouse.findAll({where:{clientName}});
+      res.status(200).send(assetWarehouses);
+  } catch (error) {
+      res.status(500).send(error);
+  }
+});
 
 
 

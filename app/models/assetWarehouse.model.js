@@ -5,17 +5,20 @@ module.exports = (sequelize, Sequelize) => {
       autoIncrement: true,
       primaryKey: true
     },
+    warehouseId:{
+      type:Sequelize.STRING
+    },
     name: {
-      type: Sequelize.INTEGER,
+      type: Sequelize.STRING,
       primaryKey: true
     },
-    clientId:{
-      type:Sequelize.INTEGER
+    clientName:{
+      type:Sequelize.STRING
     }
 
   }, {
     timestamps: false,
   });
-  AssetWarehouse.sync({ alter: false });
+  AssetWarehouse.sync({ alter: true });
   return AssetWarehouse;
 }
