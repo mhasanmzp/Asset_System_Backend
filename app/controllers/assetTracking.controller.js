@@ -20,8 +20,7 @@ const oem = db.AssetOem
 const project = db.AssetProject
 const purchase = db.AssetPurchase
 const site = db.AssetSite
-const testing = db.AssetTesting
-const warranty = db.AssetWarranty
+const Employees = db.Employees;
 
 module.exports = function (app) {
   let smtpAuth = {
@@ -813,7 +812,8 @@ module.exports = function (app) {
         oemName,
         challanNo,
         challanDate,
-        materialRows
+        materialRows,
+        storeAddress:storeLocation
       } = req.body;
   
       // Generate challanId
@@ -834,8 +834,7 @@ module.exports = function (app) {
           quantity,
           quantityUnit,
           warrantyPeriodMonths,
-          storeLocation,
-          serialNumbers
+          serialNumber
         } = material;
         
         // Generate a unique purchaseId
@@ -852,7 +851,7 @@ module.exports = function (app) {
   
         if (["Units", "KG", "Metre", "Grams", "Pieces", "Dozen", "Box", "Bag"].includes(quantityUnit)) {
           // Create multiple entries with serialNumbers
-          for (const serialNumber of serialNumbers) {
+          // for (const serialNumber of serialNumbers) {
             const newEntry = await inventory.create({
               oemName,
               categoryName,
@@ -870,7 +869,7 @@ module.exports = function (app) {
               challanNumber: challanNo
             });
             newEntries.push(newEntry);
-          }
+          // }
         } else {
           // Create a single entry without serialNumbers
           const newEntry = await inventory.create({
@@ -947,18 +946,14 @@ module.exports = function (app) {
         challanDate,
         materialRows
       } = req.body;
-  
+      const {storeAddress:storeLocation} = req.body.material;
+      
       // Generate challanId
       const challanId = await generateChallanId();
-  
-      const categoriesName = {};
-      const productsName = {};
-      const quantityUnits = {};
       const newEntries = [];
-  
-      let categoryCount = 1;
-      let productCount = 1;
-  
+      
+     
+      
       for (const material of materialRows) {
         const {
           categoryName,
@@ -966,25 +961,22 @@ module.exports = function (app) {
           quantity,
           quantityUnit,
           warrantyPeriodMonths,
-          storeLocation,
-          serialNumbers
+          serialNumber
         } = material;
-  
+        console.log(serialNumber);
+        
         // Generate a unique purchaseId
-  
+        
         const warrantyStartDate = challanDate;
         const warrantyEndDate = new Date(challanDate);
         warrantyEndDate.setMonth(warrantyEndDate.getMonth() + warrantyPeriodMonths);
-  
-        categoriesName[`Category${categoryCount}`] = categoryName;
-        productsName[`Product${productCount}`] = productName;
-        quantityUnits[`QuantityUnit${productCount}`] = quantityUnit;
-        categoryCount++;
-        productCount++;
-  
-        if (["Units", "KG", "Metre", "Grams", "Pieces", "Dozen", "Box", "Bag"].includes(quantityUnit)) {
+        
+       
+        
+          console.log(oemName);
+          
           // Create multiple entries with serialNumbers
-          for (const serialNumber of serialNumbers) {
+          // for (const serialNumber of serialNumbers) {
             const newEntry = await inventory.create({
               oemName,
               categoryName,
@@ -1002,27 +994,8 @@ module.exports = function (app) {
               challanNumber: challanNo
             });
             newEntries.push(newEntry);
-          }
-        } else {
-          // Create a single entry without serialNumbers
-          const newEntry = await inventory.create({
-            categoryName,
-            productName,
-            inventoryStoreName: storeName,
-            quantity,
-            quantityUnit,
-            storeLocation,
-            purchaseDate: grnDate,
-            serialNumber: null, // Assuming serialNumber is not nullable
-            warrantyPeriodMonths,
-            warrantyStartDate,
-            warrantyEndDate,
-            purchaseId,
-            status: "RECEIVED",
-            challanId: challanNo
-          });
-          newEntries.push(newEntry);
-        }
+          // }
+        
       }
   
       // Create an entry in AssetChallan
@@ -1030,8 +1003,6 @@ module.exports = function (app) {
         challanId: challanId.toString(),
         challanNumber: challanNo,
         challanType: 'INWARD',
-        categoriesName,
-        productsName,
         date: challanDate,
         details: JSON.stringify(req.body),
         purchaseId
@@ -1136,7 +1107,11 @@ module.exports = function (app) {
   app.post('/update-testing-data', async (req, res) => {
     try {
         console.log(req.body);
-        const { items, engineerName } = req.body;
+        const { items, employeeId } = req.body;
+        const empInfo = await Employees.findOne({where:{employeeId},attributes:['firstName','middleName','lastName']});
+        // console.log(empInfo);
+        const engineerName = `${empInfo.firstName} ${empInfo.middleName} ${empInfo.lastName}`
+        // console.log(engineerName);
 
         // Loop through each item and update the asset
         const updatePromises = items.map(async (item) => {
@@ -1236,20 +1211,21 @@ app.post('/delivery-product-list-s2', async (req, res) => {
 app.post('/update-delivery-data-s1', async (req, res) => {
     console.log(req.body);
     const { deliveryDetails} = req.body;
+    const {selectedClient:client} =req.body ;
+    const {selectedWarehouse: clientWarehouse} = req.body;
     const status = "SENT TO CLIENT WAREHOUSE"
-    const {products} = deliveryDetails ;
-    const {client} = deliveryDetails;
-    const {warehouse: clientWarehouse} = deliveryDetails
+    const {items} = deliveryDetails ;
 
-    if (!products || !Array.isArray(products) || products.length === 0) {
+    if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Invalid product data' });
     }
 
     try {
       const deliveryDate = new Date();
 
-      for (const product of products) {
-        const { serialNumber, productName } = product;
+      for (const item of items) {
+        const { serialNumbers, productName } = item;
+        const serialNumber = serialNumbers[0];
 
         if (!serialNumber || !productName) {
           return res.status(400).json({ error: 'Invalid product data format' });
@@ -1349,7 +1325,7 @@ app.post('/scrap-managemet-dashboard', async (req, res) => {
 app.post('/grid-view-dashboard', async (req, res) => {
   try {
     const assets = await inventory.findAll({
-      attributes: ['categoryName', 'oemName', 'productName', 'siteName', 'serialNumber', 'status', 'warrantyStartDate', 'warrantyEndDate', 'deliveryDate', 'client', 'clientWarehouse'],
+      attributes: ['categoryName', 'oemName', 'productName', 'siteName', 'serialNumber', 'status', 'warrantyStartDate', 'warrantyEndDate', 'deliveryDate', 'client', 'clientWarehouse','engineerName'],
       where: {
           status: {
               [Sequelize.Op.in]: ['RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED','RETURN TO OEM','RETURN TO CLIENT','SENT TO CLIENT WAREHOUSE','DELIVERED TO SITE']  // Example values
@@ -1389,7 +1365,10 @@ app.post('/faulty-asset-action', async (req, res) => {
 
   try {
       for (const assetData of assetsData) {
-          const {productName, siteName, serialNumber, action } = assetData;
+          const {productName,serialNumber, action } = assetData;
+          console.log("productName",productName);
+          console.log("serialNumber",serialNumber);
+          console.log("action",action);
 
           // Determine the new status based on the action
           let newStatus;
@@ -1397,7 +1376,7 @@ app.post('/faulty-asset-action', async (req, res) => {
               case 'Mark as Scrap':
                   newStatus = 'SCRAP';
                   break;
-              case 'Sent Back to OEM':
+              case 'Sent Back to the OEM':
                   newStatus = 'RETURN TO OEM';
                   break;
               case 'Sent Back to the Site':
@@ -1409,6 +1388,7 @@ app.post('/faulty-asset-action', async (req, res) => {
                   // Skip invalid actions
                   continue;
           }
+          console.log("new Status",newStatus);
 
           // Update the asset status using Sequelize's update method
           await inventory.update(
@@ -1416,7 +1396,6 @@ app.post('/faulty-asset-action', async (req, res) => {
               {
                   where: {
                       productName,
-                      siteName,
                       serialNumber
                   }
               }
@@ -1543,6 +1522,9 @@ app.post('/asset-warehouse', async (req, res) => {
           const existingWarehouse = await warehouse.findOne({ where: { name } });
           if (existingWarehouse) {
               return res.status(400).json({ message: `Warehouse name ${name} already exists` });
+          }
+          if(!name){
+            return res.status(400).json({ message: `Warehouse name should not be Empty` });
           }
 
           // Get new id
