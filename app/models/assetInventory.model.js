@@ -49,15 +49,14 @@ module.exports = (sequelize, Sequelize) => {
         testingDate: {
             type: Sequelize.DATE,
         },
-        purchaseDate: {
+        purchaseOrderDate: {
             type: Sequelize.DATE,
         },
         serialNumber: {
             type: Sequelize.STRING,
-            unique:true
         },
         status: {
-            type: Sequelize.ENUM('RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED','RETURN TO OEM','RETURN TO CLIENT','SENT TO CLIENT WAREHOUSE','DELIVERED TO SITE'),
+            type: Sequelize.ENUM('RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED','RETURN TO OEM','RETURN TO SITE','SENT TO CLIENT WAREHOUSE','DELIVERED TO SITE'),
             allowNull: false,
             default: 'RECEIVED'
         },
@@ -97,11 +96,17 @@ module.exports = (sequelize, Sequelize) => {
         },
         faultyRemark:{
         type:Sequelize.TEXT
+        },
+        hsnNumber:{
+            type:Sequelize.STRING
+        },
+        grnDate:{
+            type:Sequelize.DATE
         }
 
     }, {
         timestamps: false,
     });
-    AssetInventory.sync({ alter: false });
+    AssetInventory.sync({ alter: true });
     return AssetInventory;
 }

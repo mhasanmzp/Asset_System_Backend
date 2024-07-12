@@ -31,6 +31,9 @@ module.exports = (sequelize, Sequelize) => {
           },
           purchaseId:{
             type:Sequelize.STRING
+          },
+          chalanPdf:{
+            type:Sequelize.BLOB
           }
   
     }, {

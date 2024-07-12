@@ -51,7 +51,7 @@
     "sequelize": "^6.29.3",
     "skipper": "^0.9.3",
     "socket.io": "^4.7.4",
-    "underscore": "^1.8.3",
+    "underscore": "^1.13.6",
     "url-exists": "^1.0.3",
     "util": "^0.12.4",
     "voilab-pdf-table": "^0.5.1",
