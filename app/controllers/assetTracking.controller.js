@@ -80,57 +80,57 @@ module.exports = function (app) {
   //for multiple entries
   app.post('/asset-category', async (req, res) => {
     try {
-        // Extract and validate the data array from the request body
-        const { data } = req.body;
-        if (!Array.isArray(data)) {
-            return res.status(400).json({ message: 'Invalid data format. Expected an array of objects.' });
+      // Extract and validate the data array from the request body
+      const { data } = req.body;
+      if (!Array.isArray(data)) {
+        return res.status(400).json({ message: 'Invalid data format. Expected an array of objects.' });
+      }
+
+      // Function to generate new categoryId
+      const getNewCategoryId = async () => {
+        const maxCategory = await category.max('categoryId');
+        return maxCategory ? maxCategory + 1 : 1000;
+      };
+
+      const newCategories = [];
+
+      for (const cat of data) {
+        const name = cat.category;
+        const hsnNumber = cat.hsn;
+        if (!name) {
+          return res.status(400).json({ message: 'Category name is required.' });
         }
 
-        // Function to generate new categoryId
-        const getNewCategoryId = async () => {
-            const maxCategory = await category.max('categoryId');
-            return maxCategory ? maxCategory + 1 : 1000;
-        };
-
-        const newCategories = [];
-
-        for (const cat of data) {
-            const name = cat.category;
-            const hsnNumber = cat.hsn;
-            if (!name) {
-                return res.status(400).json({ message: 'Category name is required.' });
-            }
-
-            // Check if name already exists
-            const existingCategory = await category.findOne({ where: { name } });
-            if (existingCategory) {
-                return res.status(400).json({ message: `Category name ${name} already exists.` });
-            }
-
-            // Get new categoryId
-            const newCategoryId = await getNewCategoryId();
-
-            // Create new category
-            const newCategory = await category.create({
-                categoryId: newCategoryId,
-                name,
-                hsnNumber
-
-            });
-
-            newCategories.push(newCategory);
+        // Check if name already exists
+        const existingCategory = await category.findOne({ where: { name } });
+        if (existingCategory) {
+          return res.status(400).json({ message: `Category name ${name} already exists.` });
         }
 
-        res.status(201).json(newCategories);
+        // Get new categoryId
+        const newCategoryId = await getNewCategoryId();
+
+        // Create new category
+        const newCategory = await category.create({
+          categoryId: newCategoryId,
+          name,
+          hsnNumber
+
+        });
+
+        newCategories.push(newCategory);
+      }
+
+      res.status(201).json(newCategories);
     } catch (error) {
-        res.status(500).json({ message: 'Error creating categories', error });
+      res.status(500).json({ message: 'Error creating categories', error });
     }
-});
+  });
 
   app.post('/asset-categories-dropdown', async (req, res) => {
     try {
       const categories = await category.findAll({
-        attributes: ['categoryId', 'name','hsnNumber'],
+        attributes: ['categoryId', 'name', 'hsnNumber'],
         order: [['name', 'ASC']]
       });
 
@@ -161,39 +161,39 @@ module.exports = function (app) {
         const maxStoreId = await stores.max('storeId');
         return maxStoreId ? maxStoreId + 1 : 1000;
       };
-  
+
       const { permissionName, employeeIdMiddleware, employeeId, data } = req.body;
-  
+
       if (!permissionName || !employeeIdMiddleware || !employeeId) {
         console.log('Missing required fields:', { permissionName, employeeIdMiddleware, employeeId });
         return res.status(400).json({ message: 'Permission name, employeeIdMiddleware, and employeeId must not be empty' });
       }
-  
+
       const newStores = [];
-  
+
       for (const item of data) {
         const { store } = item;
         console.log(store);
         const { name: storeName, address } = store;
-  
+
         console.log('Processing store:', { storeName, address });
-  
+
         if (!storeName) {
           console.log('Store name is empty:', store);
           return res.status(400).json({ message: 'Store name must not be empty' });
         }
-  
+
         // Check if storeName already exists
         const existingStore = await stores.findOne({ where: { storeName } });
         if (existingStore) {
-          console.log('Store name already exists:', storeName);
-          return res.status(400).json({ message: `Store name '${storeName}' already exists` });
+          console.log('Warehouse name already exists:', storeName);
+          return res.status(400).json({ message: `Warehouse name '${storeName}' already exists` });
         }
-  
+
         // Get new storeId
         const newStoreId = await getNewStoreId();
         console.log('Generated new storeId:', newStoreId);
-  
+
         // Create new store object
         newStores.push({
           storeId: newStoreId,
@@ -201,27 +201,24 @@ module.exports = function (app) {
           address,
         });
       }
-  
+
       console.log('New stores to be created:', newStores);
-  
+
       // Bulk create new stores
       await stores.bulkCreate(newStores);
-  
+
       res.status(201).json({ message: 'Stores created successfully', stores: newStores });
     } catch (error) {
       console.error('Error creating stores:', error);
       res.status(500).json({ message: 'Error creating stores', error });
     }
   });
-  
-  
-  
 
   // API to get store IDs and names
   app.post('/stores-dropdown', async (req, res) => {
     try {
       const storess = await stores.findAll({
-        attributes: ['storeId', 'storeName']
+        attributes: ['storeId', 'storeName','address']
       });
       res.status(200).send(storess);
     } catch (error) {
@@ -263,33 +260,33 @@ module.exports = function (app) {
   //for multiple engineer entry
   app.post('/asset-engineer', async (req, res) => {
     try {
-      console.log("req.body",req.body);
-      const { data } = req.body; 
+      console.log("req.body", req.body);
+      const { data } = req.body;
       console.log(data);
       // Function to generate new engineerId
       const getNewEngineerId = async () => {
         const maxEngineer = await engineer.max('engineerId');
         return maxEngineer ? maxEngineer + 1 : 1000;
       };
-  
+
       const newEngineers = [];
-  
+
       for (const engData of data) {
-        console.log("engData",engData);
+        console.log("engData", engData);
         const name = engData.engineer; // Extract the name value
-  
+
         // Get new engineerId
         const newEngineerId = await getNewEngineerId();
-  
+
         // Create new engineer
         const newEngineer = await engineer.create({
           engineerId: newEngineerId,
           name
         });
-  
+
         newEngineers.push(newEngineer);
       }
-  
+
       res.status(201).json(newEngineers);
     } catch (error) {
       res.status(500).json({ message: 'Error creating engineers', error });
@@ -395,47 +392,46 @@ module.exports = function (app) {
     }
   });
 
-
   //for multiple oems
   app.post('/asset-oem', async (req, res) => {
     try {
 
-        const { data } = req.body; 
-        console.log("data", data);
-        const getNewOemId = async () => {
-          const maxOem = await oem.max('oemId');
-          return maxOem ? maxOem + 1 : 1000;
+      const { data } = req.body;
+      console.log("data", data);
+      const getNewOemId = async () => {
+        const maxOem = await oem.max('oemId');
+        return maxOem ? maxOem + 1 : 1000;
       };
 
 
-        for (const o of data) {
-            const { oem:oemName } = o;
-            if(!oemName){
-              return res.status(400).json({"message":"Oem name must not be empty"})
-            }
-
-            // Check if email already exists
-            const existingOem = await oem.findOne({ where: { oemName } });
-            if (existingOem) {
-                return res.status(400).json({ message: `OEM Name ${oemName} already exists` });
-            }
-
-            // Get new oemId
-            const newOemId = await getNewOemId();
-
-            // Create new OEM
-            const newOem = await oem.create({
-                oemId: newOemId,
-                oemName
-            });
-
+      for (const o of data) {
+        const { oem: oemName } = o;
+        if (!oemName) {
+          return res.status(400).json({ "message": "Oem name must not be empty" })
         }
 
-        res.status(201).json({"message":"Successfully Created"});
+        // Check if email already exists
+        const existingOem = await oem.findOne({ where: { oemName } });
+        if (existingOem) {
+          return res.status(400).json({ message: `OEM Name ${oemName} already exists` });
+        }
+
+        // Get new oemId
+        const newOemId = await getNewOemId();
+
+        // Create new OEM
+        const newOem = await oem.create({
+          oemId: newOemId,
+          oemName
+        });
+
+      }
+
+      res.status(201).json({ "message": "Successfully Created" });
     } catch (error) {
-        res.status(500).json({ message: 'Error creating OEMs', error });
+      res.status(500).json({ message: 'Error creating OEMs', error });
     }
-});
+  });
 
 
   app.post('/asset-oems-dropdown', async (req, res) => {
@@ -488,45 +484,43 @@ module.exports = function (app) {
   app.post('/asset-project', async (req, res) => {
     try {
       console.log(req.body);
-      const { data } = req.body; 
-  
+      const { data } = req.body;
+
       // Function to generate new projectId
       const getNewProjectId = async () => {
         const maxProject = await project.max('projectId');
         return maxProject ? maxProject + 1 : 1000;
       };
-  
+
       const newProjects = [];
-  
+
       for (const p of data) {
         const { project: projectName } = p;
         console.log(projectName);
-  
+
         // Check if projectName already exists
         const existingProject = await project.findOne({ where: { projectName } });
         if (existingProject) {
           return res.status(400).json({ message: `Project name ${projectName} already exists` });
         }
-  
+
         // Get new projectId
         const newProjectId = await getNewProjectId();
-  
+
         // Create new project
         const newProject = await project.create({
           projectId: newProjectId,
           projectName
         });
-  
+
         newProjects.push(newProject);
       }
-  
+
       res.status(201).json(newProjects);
     } catch (error) {
       res.status(500).json({ message: 'Error creating projects', error });
     }
   });
-  
-
 
   app.put('/asset-project/:id', async (req, res) => {
     try {
@@ -601,7 +595,7 @@ module.exports = function (app) {
   //for multiple sites
   app.post('/asset-site', async (req, res) => {
     try {
-      const {data} = req.body; 
+      const { data } = req.body;
       console.log(req.body);
 
       // Function to generate new siteId
@@ -613,9 +607,9 @@ module.exports = function (app) {
       const newSites = [];
 
       for (const s of data) {
-        const { site: siteName} = s;
-        if(!siteName){
-          return res.status(400).json({"message":"Site name must not be empty"})
+        const { site: siteName } = s;
+        if (!siteName) {
+          return res.status(400).json({ "message": "Site name must not be empty" })
         }
 
         // Check if siteName already exists
@@ -692,7 +686,7 @@ module.exports = function (app) {
     }
   });
 
- app.post('/old-asset-inventory-grn', async (req, res) => {
+  app.post('/old-asset-inventory-grn', async (req, res) => {
     try {
       console.log("req.body:::::", req.body);
       // Function to generate a unique 6-digit purchaseId
@@ -816,7 +810,7 @@ module.exports = function (app) {
         quantityUnits
       });
 
-      res.status(201).json({ message: "Entries Created Successfully"});
+      res.status(201).json({ message: "Entries Created Successfully" });
     } catch (error) {
       res.status(500).json({ message: 'Error creating entries', error });
     }
@@ -825,42 +819,42 @@ module.exports = function (app) {
   app.post('/old-asset-inventory-grn', async (req, res) => {
     try {
       console.log("req.body:::::", req.body);
-  
+
       // Function to generate a unique 6-digit purchaseId
       const generatePurchaseId = async (oemName) => {
         const randomNumber = Math.floor(100000 + Math.random() * 900000);
         return randomNumber;
-        };
-        
-        // const purchaseId = await generatePurchaseId();
+      };
+
+      // const purchaseId = await generatePurchaseId();
       // Function to generate a unique challanId
       const generateChallanId = async () => {
         const maxChallanId = await challan.max('challanId');
         return maxChallanId ? parseInt(maxChallanId) + 1 : 1000;
       };
-  
+
       const {
         grnDate,
-        purchaseOrderNo:purchaseId,
+        purchaseOrderNo: purchaseId,
         storeName,
         oemName,
         challanNo,
         challanDate,
         materialRows,
-        storeAddress:storeLocation
+        storeAddress: storeLocation
       } = req.body;
-  
+
       // Generate challanId
       const challanId = await generateChallanId();
-  
+
       const categoriesName = {};
       const productsName = {};
       const quantityUnits = {};
       const newEntries = [];
-  
+
       let categoryCount = 1;
       let productCount = 1;
-  
+
       for (const material of materialRows) {
         const {
           categoryName,
@@ -870,41 +864,41 @@ module.exports = function (app) {
           warrantyPeriodMonths,
           serialNumber
         } = material;
-        const catInfo = await category.findOne({where:{name:categoryName}})
+        const catInfo = await category.findOne({ where: { name: categoryName } })
         let hsnNumber = catInfo.hsnNumber
         // Generate a unique purchaseId
-  
+
         const warrantyStartDate = challanDate;
         const warrantyEndDate = new Date(challanDate);
         warrantyEndDate.setMonth(warrantyEndDate.getMonth() + warrantyPeriodMonths);
-  
+
         categoriesName[`Category${categoryCount}`] = categoryName;
         productsName[`Product${productCount}`] = productName;
         quantityUnits[`QuantityUnit${productCount}`] = quantityUnit;
         categoryCount++;
         productCount++;
-  
+
         if (["Units", "KG", "Metre", "Grams", "Pieces", "Dozen", "Box", "Bag"].includes(quantityUnit)) {
           // Create multiple entries with serialNumbers
           // for (const serialNumber of serialNumbers) {
-            const newEntry = await inventory.create({
-              oemName,
-              categoryName,
-              productName,
-              inventoryStoreName: storeName,
-              quantityUnit,
-              storeLocation,
-              purchaseDate: grnDate,
-              serialNumber,
-              warrantyPeriodMonths,
-              warrantyStartDate,
-              warrantyEndDate,
-              purchaseId,
-              status: "RECEIVED",
-              challanNumber: challanNo,
-              hsnNumber
-            });
-            newEntries.push(newEntry);
+          const newEntry = await inventory.create({
+            oemName,
+            categoryName,
+            productName,
+            inventoryStoreName: storeName,
+            quantityUnit,
+            storeLocation,
+            purchaseDate: grnDate,
+            serialNumber,
+            warrantyPeriodMonths,
+            warrantyStartDate,
+            warrantyEndDate,
+            purchaseId,
+            status: "RECEIVED",
+            challanNumber: challanNo,
+            hsnNumber
+          });
+          newEntries.push(newEntry);
           // }
         } else {
           // Create a single entry without serialNumbers
@@ -927,7 +921,7 @@ module.exports = function (app) {
           newEntries.push(newEntry);
         }
       }
-  
+
       // Create an entry in AssetChallan
       const newChallan = await challan.create({
         challanId: challanId.toString(),
@@ -939,7 +933,7 @@ module.exports = function (app) {
         details: JSON.stringify(req.body),
         purchaseId
       });
-  
+
       // Create an entry in AssetPurchase
       const newPurchase = await purchase.create({
         purchaseId: newEntries[0].purchaseId, // Assuming all entries have the same purchaseId
@@ -950,8 +944,8 @@ module.exports = function (app) {
         quantity: materialRows.reduce((acc, material) => acc + material.quantity, 0),
         quantityUnits,
       });
-  
-      res.status(201).json({ message: "Entries Created Successfully"});
+
+      res.status(201).json({ message: "Entries Created Successfully" });
     } catch (error) {
       res.status(500).json({ message: 'Error creating entries', error });
     }
@@ -959,158 +953,162 @@ module.exports = function (app) {
 
   app.post('/asset-inventory-grn', async (req, res) => {
     try {
-        console.log("req.body:::::", req.body);
+      console.log("req.body:::::", req.body);
 
-        // Function to generate a unique challanId
-        const generateChallanId = async () => {
-            const maxChallanId = await challan.max('challanId');
-            return maxChallanId ? parseInt(maxChallanId) + 1 : 1000;
-        };
+      // Function to generate a unique challanId
+      const generateChallanId = async () => {
+        const maxChallanId = await challan.max('challanId');
+        return maxChallanId ? parseInt(maxChallanId) + 1 : 1000;
+      };
 
+      const {
+        grnDate,
+        purchaseOrderNo: purchaseId,
+        storeName,
+        oemName,
+        challanNo,
+        challanDate,
+        materialRows,
+        storeAddress: storeLocation
+      } = req.body;
+
+      // Check for duplicate serial numbers within the request payload
+      const serialNumbers = materialRows.map(material => material.serialNumber).filter(Boolean);
+      const duplicateSerialNumbers = serialNumbers.filter((item, index) => serialNumbers.indexOf(item) !== index);
+
+      if (duplicateSerialNumbers.length > 0) {
+        return res.status(400).json({ message: `Duplicate Serial Numbers found in the Data: ${duplicateSerialNumbers.join(', ')}` });
+      }
+
+      // Generate challanId
+      const challanId = await generateChallanId();
+      const date = new Date();
+
+      const categoriesName = {};
+      const productsName = {};
+      const quantityUnits = {};
+      const newEntries = [];
+
+      let categoryCount = 1;
+      let productCount = 1;
+
+      for (const material of materialRows) {
         const {
-            grnDate,
-            purchaseOrderNo: purchaseId,
-            storeName,
+          categoryName,
+          productName,
+          quantity,
+          quantityUnit,
+          warrantyPeriodMonths,
+          serialNumber
+        } = material;
+
+        const catInfo = await category.findOne({ where: { name: categoryName } });
+        let hsnNumber = catInfo.hsnNumber;
+
+        const warrantyStartDate = challanDate;
+        const warrantyEndDate = new Date(challanDate);
+        warrantyEndDate.setMonth(warrantyEndDate.getMonth() + warrantyPeriodMonths);
+
+        categoriesName[`Category${categoryCount}`] = categoryName;
+        productsName[`Product${productCount}`] = productName;
+        quantityUnits[`QuantityUnit${productCount}`] = quantityUnit;
+        categoryCount++;
+        productCount++;
+        if (!storeName) {
+          return res.status(400).json({ "message": "storeName is Missing" });
+        }
+        const storeInfo = await stores.findOne({ where: { storeName }, raw: true, attributes: ['address'] });
+
+        if (["Units", "KG", "Metre", "Grams", "Pieces", "Dozen", "Box", "Bag"].includes(quantityUnit)) {
+          // Create multiple entries with serialNumbers
+          const newEntry = await inventory.create({
             oemName,
-            challanNo,
-            challanDate,
-            materialRows,
-            storeAddress: storeLocation
-        } = req.body;
-
-        // Check for duplicate serial numbers within the request payload
-        const serialNumbers = materialRows.map(material => material.serialNumber).filter(Boolean);
-        const duplicateSerialNumbers = serialNumbers.filter((item, index) => serialNumbers.indexOf(item) !== index);
-
-        if (duplicateSerialNumbers.length > 0) {
-            return res.status(400).json({ message: `Duplicate Serial Numbers found in the Data: ${duplicateSerialNumbers.join(', ')}` });
-        }
-
-        // Generate challanId
-        const challanId = await generateChallanId();
-        const date = new Date();
-
-        const categoriesName = {};
-        const productsName = {};
-        const quantityUnits = {};
-        const newEntries = [];
-
-        let categoryCount = 1;
-        let productCount = 1;
-
-        for (const material of materialRows) {
-            const {
-                categoryName,
-                productName,
-                quantity,
-                quantityUnit,
-                warrantyPeriodMonths,
-                serialNumber
-            } = material;
-
-            const catInfo = await category.findOne({ where: { name: categoryName } });
-            let hsnNumber = catInfo.hsnNumber;
-
-            const warrantyStartDate = challanDate;
-            const warrantyEndDate = new Date(challanDate);
-            warrantyEndDate.setMonth(warrantyEndDate.getMonth() + warrantyPeriodMonths);
-
-            categoriesName[`Category${categoryCount}`] = categoryName;
-            productsName[`Product${productCount}`] = productName;
-            quantityUnits[`QuantityUnit${productCount}`] = quantityUnit;
-            categoryCount++;
-            productCount++;
-
-            if (["Units", "KG", "Metre", "Grams", "Pieces", "Dozen", "Box", "Bag"].includes(quantityUnit)) {
-                // Create multiple entries with serialNumbers
-                const newEntry = await inventory.create({
-                    oemName,
-                    categoryName,
-                    productName,
-                    inventoryStoreName: storeName,
-                    quantityUnit,
-                    storeLocation,
-                    purchaseDate: grnDate,
-                    serialNumber,
-                    warrantyPeriodMonths,
-                    warrantyStartDate,
-                    warrantyEndDate,
-                    purchaseId,
-                    status: "RECEIVED",
-                    challanNumber: challanNo,
-                    hsnNumber,
-                    grnDate:date
-                });
-                newEntries.push(newEntry);
-            } else {
-                // Create a single entry without serialNumbers
-                const newEntry = await inventory.create({
-                    categoryName,
-                    productName,
-                    inventoryStoreName: storeName,
-                    quantity,
-                    quantityUnit,
-                    storeLocation,
-                    purchaseDate: grnDate,
-                    serialNumber: null, // Assuming serialNumber is not nullable
-                    warrantyPeriodMonths,
-                    warrantyStartDate,
-                    warrantyEndDate,
-                    purchaseId,
-                    status: "RECEIVED",
-                    challanId: challanNo
-                });
-                newEntries.push(newEntry);
-            }
-        }
-
-        // Create an entry in AssetChallan
-        const newChallan = await challan.create({
-            challanId: challanId.toString(),
+            categoryName,
+            productName,
+            inventoryStoreName: storeName,
+            quantityUnit,
+            storeLocation: storeInfo.address,
+            purchaseOrderDate: grnDate,
+            serialNumber,
+            warrantyPeriodMonths,
+            warrantyStartDate,
+            warrantyEndDate,
+            purchaseId,
+            status: "RECEIVED",
             challanNumber: challanNo,
-            challanType: 'INWARD',
-            categoriesName,
-            productsName,
-            date: challanDate,
-            details: JSON.stringify(req.body),
-            purchaseId
-        });
-
-        // Create an entry in AssetPurchase
-        const newPurchase = await purchase.create({
-            purchaseId: newEntries[0].purchaseId, // Assuming all entries have the same purchaseId
-            oemName,
-            categoriesName,
-            productsName,
+            hsnNumber,
+            grnDate: date
+          });
+          newEntries.push(newEntry);
+        } else {
+          // Create a single entry without serialNumbers
+          const newEntry = await inventory.create({
+            categoryName,
+            productName,
+            inventoryStoreName: storeName,
+            quantity,
+            quantityUnit,
+            storeLocation,
             purchaseDate: grnDate,
-            quantity: materialRows.reduce((acc, material) => acc + material.quantity, 0),
-            quantityUnits,
-        });
+            serialNumber: null, // Assuming serialNumber is not nullable
+            warrantyPeriodMonths,
+            warrantyStartDate,
+            warrantyEndDate,
+            purchaseId,
+            status: "RECEIVED",
+            challanId: challanNo
+          });
+          newEntries.push(newEntry);
+        }
+      }
 
-        res.status(201).json({ message: "Entries Created Successfully" });
+      // Create an entry in AssetChallan
+      const newChallan = await challan.create({
+        challanId: challanId.toString(),
+        challanNumber: challanNo,
+        challanType: 'INWARD',
+        categoriesName,
+        productsName,
+        date: challanDate,
+        details: JSON.stringify(req.body),
+        purchaseId
+      });
+
+      // Create an entry in AssetPurchase
+      const newPurchase = await purchase.create({
+        purchaseId: newEntries[0].purchaseId, // Assuming all entries have the same purchaseId
+        oemName,
+        categoriesName,
+        productsName,
+        purchaseDate: grnDate,
+        quantity: materialRows.reduce((acc, material) => acc + material.quantity, 0),
+        quantityUnits,
+      });
+
+      res.status(201).json({ message: "Entries Created Successfully" });
     } catch (error) {
-        res.status(500).json({ message: 'Error creating entries', error });
+      res.status(500).json({ message: 'Error creating entries', error });
     }
-});
+  });
 
 
   app.post('/old-asset-inventory-update-grn', async (req, res) => {
     try {
       console.log("req.body:::::", req.body);
-  
+
       // Function to generate a unique 6-digit purchaseId
       // const generatePurchaseId = async (oemName) => {
       //   const randomNumber = Math.floor(100000 + Math.random() * 900000);
       //   return randomNumber;
       // };
-  
+
       // Function to generate a unique challanId
       const generateChallanId = async () => {
         const maxChallanId = await challan.max('challanId');
         return maxChallanId ? parseInt(maxChallanId) + 1 : 1000;
       };
       const grnDate = new Date()
-  
+
       const {
         purchaseId,
         oemName,
@@ -1118,16 +1116,16 @@ module.exports = function (app) {
         challanDate,
         materialRows
       } = req.body;
-      const {storeAddress:storeLocation} = req.body.material;
-      const {material}  =req.body
-      const {storeName:inventoryStoreName} = material;
-      
+      const { storeAddress: storeLocation } = req.body.material;
+      const { material } = req.body
+      const { storeName: inventoryStoreName } = material;
+
       // Generate challanId
       const challanId = await generateChallanId();
       const newEntries = [];
-      
-     
-      
+
+
+
       for (const material of materialRows) {
         const {
           categoryName,
@@ -1139,44 +1137,44 @@ module.exports = function (app) {
         } = material;
         console.log(serialNumber);
 
-        const catInfo = await category.findOne({where:{name:categoryName}})
+        const catInfo = await category.findOne({ where: { name: categoryName } })
         let hsnNumber = catInfo.hsnNumber
 
-        
+
         // Generate a unique purchaseId
-        
+
         const warrantyStartDate = challanDate;
         const warrantyEndDate = new Date(challanDate);
         warrantyEndDate.setMonth(warrantyEndDate.getMonth() + warrantyPeriodMonths);
-        
-       
-        
-          console.log(oemName);
-          
-          // Create multiple entries with serialNumbers
-          // for (const serialNumber of serialNumbers) {
-            const newEntry = await inventory.create({
-              oemName,
-              categoryName,
-              productName,
-              inventoryStoreName,
-              quantityUnit,
-              storeLocation,
-              purchaseDate: grnDate,
-              serialNumber,
-              warrantyPeriodMonths,
-              warrantyStartDate,
-              warrantyEndDate,
-              purchaseId,
-              status: "RECEIVED",
-              challanNumber: challanNo,
-              hsnNumber
-            });
-            newEntries.push(newEntry);
-          // }
-        
+
+
+
+        console.log(oemName);
+
+        // Create multiple entries with serialNumbers
+        // for (const serialNumber of serialNumbers) {
+        const newEntry = await inventory.create({
+          oemName,
+          categoryName,
+          productName,
+          inventoryStoreName,
+          quantityUnit,
+          storeLocation,
+          purchaseDate: grnDate,
+          serialNumber,
+          warrantyPeriodMonths,
+          warrantyStartDate,
+          warrantyEndDate,
+          purchaseId,
+          status: "RECEIVED",
+          challanNumber: challanNo,
+          hsnNumber
+        });
+        newEntries.push(newEntry);
+        // }
+
       }
-  
+
       // Create an entry in AssetChallan
       const newChallan = await challan.create({
         challanId: challanId.toString(),
@@ -1186,8 +1184,8 @@ module.exports = function (app) {
         details: JSON.stringify(req.body),
         purchaseId
       });
-  
-      res.status(201).json({ message: "Entries Created Successfully"});
+
+      res.status(201).json({ message: "Entries Created Successfully" });
     } catch (error) {
       res.status(500).json({ message: 'Error creating entries', error });
     }
@@ -1195,97 +1193,104 @@ module.exports = function (app) {
 
   app.post('/asset-inventory-update-grn', async (req, res) => {
     try {
-        console.log("req.body:::::", req.body);
+      console.log("req.body:::::", req.body);
 
-        // Function to generate a unique challanId
-        const generateChallanId = async () => {
-            const maxChallanId = await challan.max('challanId');
-            return maxChallanId ? parseInt(maxChallanId) + 1 : 1000;
-        };
-        const grnDate = new Date();
+      // Function to generate a unique challanId
+      const generateChallanId = async () => {
+        const maxChallanId = await challan.max('challanId');
+        return maxChallanId ? parseInt(maxChallanId) + 1 : 1000;
+      };
+      const grnDate = new Date();
 
+      const {
+        purchaseId,
+        oemName,
+        challanNo,
+        challanDate,
+        materialRows,
+        material
+      } = req.body;
+
+      const { storeName: inventoryStoreName } = material;
+      const storeData = await stores.findOne({ where: { storeName: inventoryStoreName }, raw: true, attributes: ['address'] });
+      const storeLocation = storeData ? storeData.address : null;
+
+      // Check for duplicate serial numbers within the request payload
+      const serialNumbers = materialRows.map(material => material.serialNumbers).flat().filter(Boolean);
+      const duplicateSerialNumbers = serialNumbers.filter((item, index) => serialNumbers.indexOf(item) !== index);
+
+      if (duplicateSerialNumbers.length > 0) {
+        return res.status(400).json({ message: `Duplicate Serial Numbers found in the Data: ${duplicateSerialNumbers.join(', ')}` });
+      }
+      if (!purchaseId) {
+        return res.status(400).json({ "message": "Purchase Order is Missing Please select the P.O." });
+      }
+      const purchaseData = await purchase.findOne({ where: { purchaseId }, raw: true, attributes: ['purchaseDate'] });
+
+      // Generate challanId
+      const challanId = await generateChallanId();
+      const newEntries = [];
+
+      for (const material of materialRows) {
         const {
-            purchaseId,
+          categoryName,
+          productName,
+          quantity,
+          quantityUnit,
+          warrantyPeriodMonths,
+          serialNumbers
+        } = material;
+
+        const catInfo = await category.findOne({ where: { name: categoryName } });
+        const hsnNumber = catInfo ? catInfo.hsnNumber : null;
+
+        const warrantyStartDate = new Date(challanDate);
+        const warrantyEndDate = new Date(challanDate);
+        warrantyEndDate.setMonth(warrantyEndDate.getMonth() + warrantyPeriodMonths);
+        const date = new Date();
+
+        for (const serialNumber of serialNumbers) {
+          const newEntry = await inventory.create({
             oemName,
-            challanNo,
-            challanDate,
-            materialRows
-        } = req.body;
-        const { storeAddress: storeLocation } = req.body.material;
-        const { material } = req.body;
-        const { storeName: inventoryStoreName } = material;
-
-        // Check for duplicate serial numbers within the request payload
-        const serialNumbers = materialRows.map(material => material.serialNumber).filter(Boolean);
-        const duplicateSerialNumbers = serialNumbers.filter((item, index) => serialNumbers.indexOf(item) !== index);
-
-        if (duplicateSerialNumbers.length > 0) {
-            return res.status(400).json({ message: `Duplicate Serial Numbers found in the Data: ${duplicateSerialNumbers.join(', ')}` });
-        }
-
-        // Generate challanId
-        const challanId = await generateChallanId();
-        const newEntries = [];
-
-        for (const material of materialRows) {
-            const {
-                categoryName,
-                productName,
-                quantity,
-                quantityUnit,
-                warrantyPeriodMonths,
-                serialNumber
-            } = material;
-            console.log(serialNumber);
-
-            const catInfo = await category.findOne({ where: { name: categoryName } });
-            let hsnNumber = catInfo.hsnNumber;
-
-            const warrantyStartDate = challanDate;
-            const warrantyEndDate = new Date(challanDate);
-            warrantyEndDate.setMonth(warrantyEndDate.getMonth() + warrantyPeriodMonths);
-
-            console.log(oemName);
-
-            // Create multiple entries with serialNumbers
-            const newEntry = await inventory.create({
-                oemName,
-                categoryName,
-                productName,
-                inventoryStoreName,
-                quantityUnit,
-                storeLocation,
-                purchaseDate: grnDate,
-                serialNumber,
-                warrantyPeriodMonths,
-                warrantyStartDate,
-                warrantyEndDate,
-                purchaseId,
-                status: "RECEIVED",
-                challanNumber: challanNo,
-                hsnNumber
-            });
-            newEntries.push(newEntry);
-        }
-
-        // Create an entry in AssetChallan
-        const newChallan = await challan.create({
-            challanId: challanId.toString(),
+            purchaseOrderDate: purchaseData.purchaseDate,
+            categoryName,
+            productName,
+            inventoryStoreName,
+            quantityUnit,
+            storeLocation,
+            purchaseDate: grnDate,
+            serialNumber,
+            warrantyPeriodMonths,
+            warrantyStartDate,
+            warrantyEndDate,
+            purchaseId,
+            status: "RECEIVED",
             challanNumber: challanNo,
-            challanType: 'INWARD',
-            date: challanDate,
-            details: JSON.stringify(req.body),
-            purchaseId
-        });
+            hsnNumber,
+            grnDate: date
+          });
+          newEntries.push(newEntry);
+        }
+      }
 
-        res.status(201).json({ message: "Entries Created Successfully" });
+      // Create an entry in AssetChallan
+      const newChallan = await challan.create({
+        challanId: challanId.toString(),
+        challanNumber: challanNo,
+        challanType: 'INWARD',
+        date: challanDate,
+        details: JSON.stringify(req.body),
+        purchaseId
+      });
+
+      res.status(201).json({ message: "Entries Created Successfully" });
     } catch (error) {
-        res.status(500).json({ message: 'Error creating entries', error });
+      console.log(error);
+      res.status(500).json({ message: 'Error creating entries', error });
     }
   });
 
-
-  app.post('/asset-inventory-dashboard', async (req, res) => {
+  app.post('/old-asset-inventory-dashboard', async (req, res) => {
     try {
       // Fetch purchase data
       const purchaseData = await purchase.findAll({
@@ -1348,6 +1353,83 @@ module.exports = function (app) {
     }
   });
 
+  app.post('/asset-inventory-dashboard', async (req, res) => {
+    try {
+      // Fetch purchase data
+      const purchaseData = await purchase.findAll({
+        attributes: ['purchaseId', 'oemName', 'purchaseDate'],
+        raw: true
+      });
+
+      // Fetch inventory data
+      const inventoryData = await inventory.findAll({
+        attributes: ['purchaseId', 'categoryName', 'productName', 'status', 'challanNumber'],
+        raw: true
+      });
+
+      // Create a lookup table for purchase data
+      const purchaseLookup = {};
+      purchaseData.forEach(purchase => {
+        purchaseLookup[purchase.purchaseId] = {
+          purchaseId: purchase.purchaseId,
+          oemName: purchase.oemName,
+          purchaseDate: purchase.purchaseDate,
+          challanData: {}
+        };
+      });
+
+      // Group inventory data by challanNumber
+      inventoryData.forEach(item => {
+        const { purchaseId, challanNumber, categoryName, productName, status } = item;
+        if (!purchaseLookup[purchaseId].challanData[challanNumber]) {
+          purchaseLookup[purchaseId].challanData[challanNumber] = {
+            challanNumber,
+            categoryName: '',
+            productName: '',
+            totalItems: 0,
+            usableItems: 0,
+            nonUsableItems: 0
+          };
+        }
+
+        const challanGroup = purchaseLookup[purchaseId].challanData[challanNumber];
+        challanGroup.totalItems++;
+        if (status === "IN STOCK") {
+          challanGroup.usableItems++;
+        }
+        if (status === "FAILED" || status === "REJECTED" || status === "FAULTY") {
+          challanGroup.nonUsableItems++;
+        }
+        challanGroup.productName = productName;
+        challanGroup.categoryName = categoryName;
+      });
+
+      // Flatten the lookup table into the required format
+      const result = [];
+      Object.values(purchaseLookup).forEach(purchase => {
+        Object.values(purchase.challanData).forEach(challan => {
+          result.push({
+            purchaseId: purchase.purchaseId,
+            oemName: purchase.oemName,
+            purchaseDate: purchase.purchaseDate,
+            challanNumber: challan.challanNumber,
+            categoryName: challan.categoryName,
+            productName: challan.productName,
+            totalItems: challan.totalItems,
+            usableItems: challan.usableItems,
+            nonUsableItems: challan.nonUsableItems
+          });
+        });
+      });
+
+      res.status(200).json({ purchaseData: result });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: 'Error fetching asset inventory summary', error });
+    }
+  });
+
+
   app.post('/getItemsByPurchaseId', async (req, res) => {
     const { purchaseId } = req.body;
     console.log(req.body);
@@ -1361,7 +1443,7 @@ module.exports = function (app) {
 
       const items = await inventory.findAll({
         where: { purchaseId },
-        
+
       });
 
       if (items.length === 0) {
@@ -1373,110 +1455,134 @@ module.exports = function (app) {
       res.status(500).json({ error: error.message });
     }
   });
-  
 
-app.post('/new-getItemsByPurchaseId', async (req, res) => {
-  const { purchaseId } = req.body;
-  console.log(req.body);
-  console.log(purchaseId);
+  app.post('/getItemsByChallanNumber', async (req, res) => {
+    const { challanNumber } = req.body;
+    console.log(req.body);
+    console.log(challanNumber);
 
-  try {
-    if (!purchaseId) {
-      return res.status(400).json({ error: 'purchaseId is required' });
+    try {
+      if (!challanNumber) {
+        return res.status(400).json({ error: 'Challan Number is required' });
+      }
+      //attributes: ['categoryName', 'oemName', 'productName', 'status', 'warrantyStartDate', 'warrantyEndDate', 'serialNumber', 'inventoryStoreName', 'storeLocation','challanNumber']
+
+      const items = await inventory.findAll({
+        where: { challanNumber },
+
+      });
+
+      if (items.length === 0) {
+        return res.status(404).json({ message: 'No items found for the given Challan Number' });
+      }
+      const purchaseId = items[0].purchaseId
+
+      res.status(200).json(items);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
+  });
 
-    const items = await inventory.findAll({
-      where: { purchaseId }
-    });
 
-    if (items.length === 0) {
-      return res.status(404).json({ message: 'No items found for the given purchaseId' });
+  app.post('/new-getItemsByPurchaseId', async (req, res) => {
+    const { purchaseId } = req.body;
+    console.log(req.body);
+    console.log(purchaseId);
+
+    try {
+      if (!purchaseId) {
+        return res.status(400).json({ error: 'purchaseId is required' });
+      }
+
+      const items = await inventory.findAll({
+        where: { purchaseId }
+      });
+
+      if (items.length === 0) {
+        return res.status(404).json({ message: 'No items found for the given purchaseId' });
+      }
+
+      const groupedItems = _.chain(items)
+        .groupBy('challanNumber')
+        .map((value, key) => ({
+          challanId: key,
+          numberOfItems: value.length,
+          challanNumber: value[0].challanNumber,
+          warrantyStartDate: value[0].warrantyStartDate ? value[0].warrantyStartDate.toISOString().split('T')[0] : null,
+          items: value
+        }))
+        .value();
+
+      res.status(200).json({ items, groupedItems });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
-
-    const groupedItems = _.chain(items)
-      .groupBy('challanNumber')
-      .map((value, key) => ({
-        challanId: key,
-        numberOfItems: value.length,
-        challanNumber: value[0].challanNumber,
-        warrantyStartDate: value[0].warrantyStartDate ? value[0].warrantyStartDate.toISOString().split('T')[0] : null,
-        items: value
-      }))
-      .value();
-
-    res.status(200).json({ items, groupedItems });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
-
+  });
 
   // API route to assign a testing manager for multiple entries
   app.post('/update-testing-data', async (req, res) => {
     try {
-        console.log(req.body);
-        const { items, employeeId } = req.body;
-        const empInfo = await Employees.findOne({where:{employeeId},attributes:['firstName','middleName','lastName']});
-        // console.log(empInfo);
-        const engineerName = `${empInfo.firstName} ${empInfo.middleName} ${empInfo.lastName}`
-        // console.log(engineerName);
+      console.log(req.body);
+      const { items, employeeId } = req.body;
+      const empInfo = await Employees.findOne({ where: { employeeId }, attributes: ['firstName', 'middleName', 'lastName'] });
+      // console.log(empInfo);
+      const engineerName = `${empInfo.firstName} ${empInfo.middleName} ${empInfo.lastName}`
+      // console.log(engineerName);
 
-        // Loop through each item and update the asset
-        const updatePromises = items.map(async (item) => {
-            console.log("item::::::", item);
-            const {categoryName,productName, serialNumber, testResult,remark:faultyRemark } = item;
+      // Loop through each item and update the asset
+      const updatePromises = items.map(async (item) => {
+        console.log("item::::::", item);
+        const { categoryName, productName, serialNumber, testResult, remark: faultyRemark } = item;
 
-            try {
-                // Find the asset
-                const asset = await inventory.findOne({
-                    where: {
-                        categoryName,
-                        productName,
-                        serialNumber
-                    }
-                });
-
-                if (asset) {
-                    // Determine the new status based on the test result
-                    const newStatus = testResult === 'FAIL' ? 'REJECTED' : 'IN STOCK';
-
-                    // Update the asset
-                    await inventory.update(
-                        {
-                            engineerName,
-                            testingResult: testResult,
-                            status: newStatus,
-                            faultyRemark
-                        },
-                        {
-                            where: {
-                                categoryName,
-                                productName,
-                                serialNumber
-                            }
-                        }
-                    );
-                } else {
-                    console.warn(`Asset not found for item: ${JSON.stringify(item)}`);
-                }
-            } catch (error) {
-                console.error(`Error updating asset for item: ${JSON.stringify(item)}`, error);
+        try {
+          // Find the asset
+          const asset = await inventory.findOne({
+            where: {
+              categoryName,
+              productName,
+              serialNumber
             }
-        });
+          });
 
-        // Wait for all updates to complete
-        await Promise.all(updatePromises);
+          if (asset) {
+            // Determine the new status based on the test result
+            const newStatus = testResult === 'FAIL' ? 'REJECTED' : 'IN STOCK';
 
-        res.json({ message: 'Testing data updated for all items' });
+            // Update the asset
+            await inventory.update(
+              {
+                engineerName,
+                testingResult: testResult,
+                status: newStatus,
+                faultyRemark
+              },
+              {
+                where: {
+                  categoryName,
+                  productName,
+                  serialNumber
+                }
+              }
+            );
+          } else {
+            console.warn(`Asset not found for item: ${JSON.stringify(item)}`);
+          }
+        } catch (error) {
+          console.error(`Error updating asset for item: ${JSON.stringify(item)}`, error);
+        }
+      });
+
+      // Wait for all updates to complete
+      await Promise.all(updatePromises);
+
+      res.json({ message: 'Testing data updated for all items' });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'An error occurred', error });
+      console.error(error);
+      res.status(500).json({ message: 'An error occurred', error });
     }
-});
+  });
 
-app.post('/delivery-product-list', async (req, res) => {
+  app.post('/delivery-product-list', async (req, res) => {
     try {
       const { category } = req.body;
       let whereClause = { status: 'IN STOCK' };
@@ -1487,7 +1593,7 @@ app.post('/delivery-product-list', async (req, res) => {
 
       const inventoryItems = await inventory.findAll({
         where: whereClause,
-        attributes: ['serialNumber', 'productName', 'status', 'categoryName','inventoryStoreName','hsnNumber']
+        attributes: ['serialNumber', 'productName', 'status', 'categoryName', 'inventoryStoreName', 'hsnNumber']
       });
 
       res.status(200).json({ "productData": inventoryItems });
@@ -1495,20 +1601,20 @@ app.post('/delivery-product-list', async (req, res) => {
       console.error('Error fetching inventory items:', error);
       res.status(500).json({ error: 'An error occurred while fetching inventory items' });
     }
-});
+  });
 
-app.post('/delivery-product-list-s2', async (req, res) => {
+  app.post('/delivery-product-list-s2', async (req, res) => {
     try {
-      const { clientName:client } = req.body;
-      let whereClause = { status: 'SENT TO CLIENT WAREHOUSE' };
+      const { clientName: client } = req.body;
+      let whereClause = { status: 'SENT TO CUSTOMER WAREHOUSE' };
 
       if (client) {
-        whereClause.client =client ;
+        whereClause.client = client;
       }
 
       const inventoryItems = await inventory.findAll({
         where: whereClause,
-        attributes: ['serialNumber', 'productName', 'status', 'categoryName','client','clientWarehouse']
+        attributes: ['serialNumber', 'productName', 'status', 'categoryName', 'client', 'clientWarehouse']
       });
 
       res.status(200).json({ "productData": inventoryItems });
@@ -1516,15 +1622,15 @@ app.post('/delivery-product-list-s2', async (req, res) => {
       console.error('Error fetching inventory items:', error);
       res.status(500).json({ error: 'An error occurred while fetching inventory items' });
     }
-});
+  });
 
-app.post('/update-delivery-data-s1', async (req, res) => {
+  app.post('/update-delivery-data-s1', async (req, res) => {
     console.log(req.body);
-    const { deliveryDetails} = req.body;
-    const {selectedClient:client} =req.body ;
-    const {selectedWarehouse: clientWarehouse} = req.body;
-    const status = "SENT TO CLIENT WAREHOUSE"
-    const {items} = deliveryDetails ;
+    const { deliveryDetails } = req.body;
+    const { selectedClient: client } = req.body;
+    const { selectedWarehouse: clientWarehouse } = req.body;
+    const status = "SENT TO CUSTOMER WAREHOUSE"
+    const { items } = deliveryDetails;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Invalid product data' });
@@ -1542,7 +1648,7 @@ app.post('/update-delivery-data-s1', async (req, res) => {
         }
 
         const updated = await inventory.update(
-          { client, clientWarehouse,deliveryDate, status },
+          { client, clientWarehouse, deliveryDate, status },
           {
             where: {
               serialNumber,
@@ -1552,21 +1658,21 @@ app.post('/update-delivery-data-s1', async (req, res) => {
         );
       }
 
-      res.status(200).json({ "message": "Data Updated Successfully" });
+      res.status(200).json({ "message": "Data Delivered Successfully" });
 
     } catch (error) {
       console.error('Error updating inventory:', error);
       res.status(500).json({ error: 'An error occurred while updating inventory items' });
     }
-});
+  });
 
-app.post('/update-delivery-data-s2', async (req, res) => {
+  app.post('/update-delivery-data-s2', async (req, res) => {
     console.log(req.body);
-    const { deliveryDetails} = req.body;
+    const { deliveryDetails } = req.body;
     const status = "DELIVERED TO SITE";
-    const {products} = deliveryDetails ;
-    const {site} = deliveryDetails;
-    const {siteName} = site; 
+    const { products } = deliveryDetails;
+    const { site } = deliveryDetails;
+    const { siteName } = site;
     const deliveryDate = new Date();
 
     if (!products || !Array.isArray(products) || products.length === 0) {
@@ -1583,7 +1689,7 @@ app.post('/update-delivery-data-s2', async (req, res) => {
         }
 
         const updated = await inventory.update(
-          { siteName,status,deliveryDate },
+          { siteName, status, deliveryDate },
           {
             where: {
               serialNumber,
@@ -1599,335 +1705,604 @@ app.post('/update-delivery-data-s2', async (req, res) => {
       console.error('Error updating inventory:', error);
       res.status(500).json({ error: 'An error occurred while updating inventory items' });
     }
-});
+  });
 
   // Fetch assets with specific fields where status is RECEIVED
-app.post('/quality-assurance-dashboard', async (req, res) => {
-  try {
+  app.post('/quality-assurance-dashboard', async (req, res) => {
+    try {
       const assets = await inventory.findAll({
-          attributes: ['categoryName', 'oemName', 'productName', 'serialNumber', 'challanNumber', 'status'],
-          where: {
-              status: 'RECEIVED'
-          }
+        attributes: ['categoryName', 'oemName', 'productName', 'serialNumber', 'challanNumber', 'status'],
+        where: {
+          status: 'RECEIVED'
+        }
       });
 
       res.status(200).json(assets);
-  } catch (error) {
+    } catch (error) {
       res.status(500).json({ message: 'Error fetching assets', error: error.message });
-  }
-});
+    }
+  });
 
-app.post('/scrap-managemet-dashboard', async (req, res) => {
-  try {
+  app.post('/scrap-managemet-dashboard', async (req, res) => {
+    try {
       const assets = await inventory.findAll({
-          attributes: ['categoryName', 'oemName', 'productName', 'serialNumber', 'challanNumber', 'status'],
-          where: {
-              status: 'SCRAP'
-          }
+        attributes: ['categoryName', 'oemName', 'productName', 'serialNumber', 'challanNumber', 'status'],
+        where: {
+          status: 'SCRAP'
+        }
       });
 
       res.status(200).json(assets);
-  } catch (error) {
+    } catch (error) {
       res.status(500).json({ message: 'Error fetching assets', error: error.message });
-  }
-});
+    }
+  });
 
-app.post('/grid-view-dashboard', async (req, res) => {
-  try {
-    const assets = await inventory.findAll({
-      attributes: ['categoryName', 'oemName', 'productName', 'siteName', 'serialNumber', 'status', 'warrantyStartDate', 'warrantyEndDate', 'deliveryDate', 'client', 'clientWarehouse','engineerName','faultyRemark'],
-      where: {
+  app.post('/grid-view-dashboard', async (req, res) => {
+    try {
+      const assets = await inventory.findAll({
+        attributes: ['categoryName', 'oemName', 'productName', 'siteName', 'serialNumber', 'status', 'warrantyStartDate', 'warrantyEndDate', 'deliveryDate', 'client', 'clientWarehouse', 'engineerName', 'faultyRemark'],
+        where: {
           status: {
-              [Sequelize.Op.in]: ['RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED','RETURN TO OEM','RETURN TO SITE','SENT TO CLIENT WAREHOUSE','DELIVERED TO SITE']  // Example values
+            [Sequelize.Op.in]: ['RECEIVED', 'IN USE', 'FAULTY', 'SCRAP', 'IN STOCK', 'REJECTED', 'DELIVERED', 'RETURN TO OEM', 'RETURN TO SITE', 'SENT TO CUSTOMER WAREHOUSE', 'DELIVERED TO SITE']  // Example values
           }
-      }
+        }
 
-  
+
       });
 
       // Process the dates to remove the time part
       const processedAssets = assets.map(asset => {
-          const warrantyStartDate = asset.warrantyStartDate ? asset.warrantyStartDate.toISOString().split('T')[0] : null;
-          const warrantyEndDate = asset.warrantyEndDate ? asset.warrantyEndDate.toISOString().split('T')[0] : null;
-          const deliveryDate = asset.deliveryDate ? asset.deliveryDate.toISOString().split('T')[0] : null;
+        const warrantyStartDate = asset.warrantyStartDate ? asset.warrantyStartDate.toISOString().split('T')[0] : null;
+        const warrantyEndDate = asset.warrantyEndDate ? asset.warrantyEndDate.toISOString().split('T')[0] : null;
+        const deliveryDate = asset.deliveryDate ? asset.deliveryDate.toISOString().split('T')[0] : null;
 
-          return {
-              ...asset.dataValues,
-              warrantyStartDate,
-              warrantyEndDate,
-              deliveryDate
-          };
+        return {
+          ...asset.dataValues,
+          warrantyStartDate,
+          warrantyEndDate,
+          deliveryDate
+        };
       });
 
       res.status(200).json(processedAssets);
-  } catch (error) {
+    } catch (error) {
       res.status(500).json({ message: 'Error fetching assets', error: error.message });
-  }
-});
+    }
+  });
 
-app.post('/faulty-asset-action', async (req, res) => {
-  console.log("req.body",req.body);
-  const {assetsData} = req.body;
+  app.post('/faulty-asset-action', async (req, res) => {
+    console.log("req.body", req.body);
+    const { assetsData } = req.body;
 
-  if (!Array.isArray(assetsData) || assetsData.length === 0) {
+    if (!Array.isArray(assetsData) || assetsData.length === 0) {
       return res.status(400).json({ message: 'Invalid or empty data array' });
-  }
+    }
 
-  try {
+    try {
       for (const assetData of assetsData) {
-          const {productName,serialNumber, action } = assetData;
-          console.log("productName",productName);
-          console.log("serialNumber",serialNumber);
-          console.log("action",action);
+        const { productName, serialNumber, action } = assetData;
+        console.log("productName", productName);
+        console.log("serialNumber", serialNumber);
+        console.log("action", action);
 
-          // Determine the new status based on the action
-          let newStatus;
-          switch(action) {
-              case 'Mark as Scrap':
-                  newStatus = 'SCRAP';
-                  break;
-              case 'Sent Back to the OEM':
-                  newStatus = 'RETURN TO OEM';
-                  break;
-              case 'Sent Back to the Site':
-                  newStatus = 'RETURN TO SITE';
-                  break;
-              case 'Delivered':
-                newStatus = "DELIVERED TO SITE";
-              default:
-                  // Skip invalid actions
-                  continue;
+        // Determine the new status based on the action
+        let newStatus;
+        switch (action) {
+          case 'Mark as Scrap':
+            newStatus = 'SCRAP';
+            break;
+          case 'Sent Back to the OEM':
+            newStatus = 'RETURN TO OEM';
+            break;
+          case 'Sent Back to the Site':
+            newStatus = 'RETURN TO SITE';
+            break;
+          case 'Delivered':
+            newStatus = "DELIVERED TO SITE";
+          default:
+            // Skip invalid actions
+            continue;
+        }
+        console.log("new Status", newStatus);
+
+        // Update the asset status using Sequelize's update method
+        await inventory.update(
+          { status: newStatus },
+          {
+            where: {
+              productName,
+              serialNumber
+            }
           }
-          console.log("new Status",newStatus);
-
-          // Update the asset status using Sequelize's update method
-          await inventory.update(
-              { status: newStatus },
-              {
-                  where: {
-                      productName,
-                      serialNumber
-                  }
-              }
-          );
+        );
       }
 
       res.status(200).json({ message: 'Assets status updated successfully' });
-  } catch (error) {
+    } catch (error) {
       res.status(500).json({ message: 'Error updating asset statuss', error: error.message });
-  }
-});
+    }
+  });
 
-app.post('/faulty-asset-dashboard', async (req, res) => {
-  try {
-    console.log("HIT.......................");
-    const assets = await inventory.findAll({
-        attributes: ['serialNumber', 'productName', 'warrantyStartDate', 'warrantyEndDate', 'siteName', 'status','oemName','hsnNumber'],
+  app.post('/faulty-asset-dashboard', async (req, res) => {
+    try {
+      // console.log("HIT.......................");
+      const assets = await inventory.findAll({
+        attributes: ['serialNumber', 'productName', 'warrantyStartDate', 'warrantyEndDate', 'siteName', 'status', 'oemName', 'hsnNumber'],
         where: {
-            status: ['IN STOCK','DELIVERED TO SITE', 'RETURN TO OEM', 'RETURN TO SITE', 'SCRAP','SENT TO CLIENT WAREHOUSE']
+          status: ['IN STOCK', 'DELIVERED TO SITE', 'RETURN TO OEM', 'RETURN TO SITE', 'SCRAP', 'SENT TO CUSTOMER WAREHOUSE', 'REJECTED']
         }
-    });
-    console.log(assets);
+      });
+      console.log(assets);
 
-    const formattedAssets = assets.map(asset => ({
+      const formattedAssets = assets.map(asset => ({
         serialNumber: asset.serialNumber,
         productName: asset.productName,
         warrantyStartDate: asset.warrantyStartDate ? asset.warrantyStartDate.toISOString().split('T')[0] : null,
         warrantyEndDate: asset.warrantyEndDate ? asset.warrantyEndDate.toISOString().split('T')[0] : null,
         siteName: asset.siteName,
         status: asset.status,
-        hsnNumber:asset.hsnNumber
-    }));
+        hsnNumber: asset.hsnNumber
+      }));
 
-    res.json(formattedAssets);
-} catch (error) {
-    res.status(500).send({
+      res.json(formattedAssets);
+    } catch (error) {
+      res.status(500).send({
         message: error.message || "Some error occurred while retrieving assets."
-    });
-}
-});
+      });
+    }
+  });
 
-app.post('/scrap-management-action', async (req, res) => {
-  try {
-  const {serialNumber,oemName,productName,status,categoryName,challanNumber} = req.body;
-          const asset = await inventory.findOne({
-              where: { serialNumber, productName,oemName,categoryName,challanNumber }
-          });
+  app.post('/scrap-management-action', async (req, res) => {
+    try {
+      const { serialNumber, oemName, productName, status, categoryName, challanNumber } = req.body;
+      const asset = await inventory.findOne({
+        where: { serialNumber, productName, oemName, categoryName, challanNumber }
+      });
 
-          if (!asset) {
-              return res.status(404).json({ error: `Asset with serial number ${serialNumber} and product name ${productName} not found` });
-          }
+      if (!asset) {
+        return res.status(404).json({ error: `Asset with serial number ${serialNumber} and product name ${productName} not found` });
+      }
 
-          if (status === 'In Stock') {
-              await inventory.update(
-                  { status: 'IN STOCK' },
-                  { where: { serialNumber, productName,oemName,categoryName,challanNumber } }
-              );
-          }
-      
+      if (status === 'In Stock') {
+        await inventory.update(
+          { status: 'IN STOCK' },
+          { where: { serialNumber, productName, oemName, categoryName, challanNumber } }
+        );
+      }
+
 
       res.status(200).json({ message: 'Assets updated successfully' });
-  } catch (error) {
+    } catch (error) {
       res.status(500).json({ error: error.message });
-  }
-});
+    }
+  });
 
-// API to store multiple AssetClient entries
-app.post('/asset-client', async (req, res) => {
-  try {
+  // API to store multiple AssetClient entries
+  app.post('/asset-client', async (req, res) => {
+    try {
       const { data } = req.body;
       console.log(req.body);
 
       // Function to generate new clientId
       const getNewClientId = async () => {
-          const maxClient = await client.max('clientId');
-          return maxClient ? maxClient + 1 : 1000;
+        const maxClient = await client.max('clientId');
+        return maxClient ? maxClient + 1 : 1000;
       };
 
       const newClients = [];
 
       for (const c of data) {
-          const { client: name} = c;
-          if(!name){
-            return res.status(400).json({"Message":"Client Name must not be empty"})
-          }
+        const { client: name } = c;
+        if (!name) {
+          return res.status(400).json({ "Message": "Client Name must not be empty" })
+        }
 
-          // Check if clientId already exists
-          const existingClient = await client.findOne({ where: { name } });
-          if (existingClient) {
-              return res.status(400).json({ message: `Client Name ${name} already exists` });
-          }
+        // Check if clientId already exists
+        const existingClient = await client.findOne({ where: { name } });
+        if (existingClient) {
+          return res.status(400).json({ message: `Client Name ${name} already exists` });
+        }
 
-          // Get new clientId if not provided
-          const newClientId = await getNewClientId();
+        // Get new clientId if not provided
+        const newClientId = await getNewClientId();
 
-          // Create new client
-          const newClient = await client.create({
-              clientId: newClientId,
-              name
-          });
+        // Create new client
+        const newClient = await client.create({
+          clientId: newClientId,
+          name
+        });
 
-          newClients.push(newClient);
+        newClients.push(newClient);
       }
 
       res.status(201).json(newClients);
-  } catch (error) {
+    } catch (error) {
       res.status(500).json({ message: 'Error creating clients', error });
-  }
-});
+    }
+  });
 
 
-// API to store multiple AssetWarehouse entries
-app.post('/asset-warehouse', async (req, res) => {
-  try {
+  // API to store multiple AssetWarehouse entries
+  app.post('/asset-warehouse', async (req, res) => {
+    try {
       const { data } = req.body;
       console.log(req.body);
 
       // Function to generate new id
       const getNewId = async () => {
-          const maxId = await warehouse.max('warehouseId');
-          return maxId ? maxId + 1 : 1000;
+        const maxId = await warehouse.max('warehouseId');
+        return maxId ? maxId + 1 : 1000;
       };
 
       const newWarehouses = [];
 
       for (const w of data) {
-          const { warehouse: name, client: clientName } = w;
-          if(!name){
-            return res.status(400).json({"message":"Warehouse Name must not be empty"})
-          }
+        const { warehouse: name, client: clientName } = w;
+        if (!name) {
+          return res.status(400).json({ "message": "Warehouse Name must not be empty" })
+        }
 
-          // Check if name already exists
-          const existingWarehouse = await warehouse.findOne({ where: { name } });
-          if (existingWarehouse) {
-              return res.status(400).json({ message: `Warehouse name ${name} already exists` });
-          }
-          if(!name){
-            return res.status(400).json({ message: `Warehouse name should not be Empty` });
-          }
+        // Check if name already exists
+        const existingWarehouse = await warehouse.findOne({ where: { name } });
+        if (existingWarehouse) {
+          return res.status(400).json({ message: `Warehouse name ${name} already exists` });
+        }
+        if (!name) {
+          return res.status(400).json({ message: `Warehouse name should not be Empty` });
+        }
 
-          // Get new id
-          const newId = await getNewId();
+        // Get new id
+        const newId = await getNewId();
 
-          // Create new warehouse
-          const newWarehouse = await warehouse.create({
-              warehouseId: newId,
-              name,
-              clientName
-          });
+        // Create new warehouse
+        const newWarehouse = await warehouse.create({
+          warehouseId: newId,
+          name,
+          clientName
+        });
 
-          newWarehouses.push(newWarehouse);
+        newWarehouses.push(newWarehouse);
       }
 
       res.status(201).json(newWarehouses);
-  } catch (error) {
+    } catch (error) {
       res.status(500).json({ message: 'Error creating warehouses', error });
-  }
-});
-
-
-// API to retrieve all AssetClient entries
-app.post('/asset-client-dropdown', async (req, res) => {
-  try {
-    const assetClients = await client.findAll({
-      attributes: ['clientId', 'name']
-  });
-  
-      res.status(200).send(assetClients);
-  } catch (error) {
-      res.status(500).send(error);
-  }
-});
-
-// API to retrieve all AssetWarehouse entries
-app.post('/asset-warehouse-dropdown', async (req, res) => {
-  try {
-    console.log(req.body);
-    const {clientName} = req.body;
-      const assetWarehouses = await warehouse.findAll({where:{clientName}});
-      res.status(200).send(assetWarehouses);
-  } catch (error) {
-      res.status(500).send(error);
-  }
-});
-app.post('/asset-warehouse-dropdown-all', async (req, res) => {
-  try {
-    console.log(req.body);
-    const {clientName} = req.body;
-      const assetWarehouses = await warehouse.findAll({attributes:['name','clientName']});
-      res.status(200).send(assetWarehouses);
-  } catch (error) {
-      res.status(500).send(error);
-  }
-});
-
-app.post('/getChallanNumByPurchaseId', async (req, res) => {
-  try {
-    const { purchaseId } = req.body; // Destructure purchaseId from req.body
-    if (!purchaseId) {
-      return res.status(400).json({ message: 'Purchase ID is required' });
     }
-
-    // Find all records matching the purchaseId and get distinct challanNumbers
-    const data = await inventory.findAll({
-      where: { purchaseId },
-      attributes: [[Sequelize.fn('DISTINCT', Sequelize.col('challanNumber')), 'challanNumber']]
-    });
-
-    // Extract the challanNumbers from the data
-    const distinctChallanNumbers = data.map(item => item.challanNumber);
-
-    // Return the distinct challanNumbers in the response
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+  });
 
 
+  // API to retrieve all AssetClient entries
+  app.post('/asset-client-dropdown', async (req, res) => {
+    try {
+      const assetClients = await client.findAll({
+        attributes: ['clientId', 'name']
+      });
+
+      res.status(200).send(assetClients);
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  });
+
+  // API to retrieve all AssetWarehouse entries
+  app.post('/asset-warehouse-dropdown', async (req, res) => {
+    try {
+      console.log(req.body);
+      const { clientName } = req.body;
+      const assetWarehouses = await warehouse.findAll({ where: { clientName } });
+      res.status(200).send(assetWarehouses);
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  });
+  app.post('/asset-warehouse-dropdown-all', async (req, res) => {
+    try {
+      console.log(req.body);
+      const { clientName } = req.body;
+      const assetWarehouses = await warehouse.findAll({ attributes: ['warehouseId', 'name', 'clientName'] });
+      res.status(200).send(assetWarehouses);
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  });
+
+  app.post('/getChallanNumByPurchaseId', async (req, res) => {
+    try {
+      const { purchaseId } = req.body; // Destructure purchaseId from req.body
+      if (!purchaseId) {
+        return res.status(400).json({ message: 'Purchase ID is required' });
+      }
+
+      // Find all records matching the purchaseId and get distinct challanNumbers
+      const data = await inventory.findAll({
+        where: { purchaseId },
+        attributes: [[Sequelize.fn('DISTINCT', Sequelize.col('challanNumber')), 'challanNumber']]
+      });
+
+      // Extract the challanNumbers from the data
+      const distinctChallanNumbers = data.map(item => item.challanNumber);
+
+      // Return the distinct challanNumbers in the response
+      res.status(200).json(data);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/old-update-asset-data', async (req, res) => {
+    try {
+      const { option, newName, Id } = req.body;
+
+      if (!option || !newName) {
+        return res.status(400).json({ message: 'Invalid request data' });
+      }
+
+      switch (option) {
+        case 'Category':
+          const data = await category.findOne({ where: { categoryId: Id } });
+          const oldName = data.name;
+          const updateCategoryRow = await category.update(
+            { name: newName },
+            { where: { categoryId: Id } }
+          );
+
+          if (updateCategoryRow === 0) {
+            console.log('No user found with the given ID.');
+          } else {
+            const updateInventoryRows = await inventory.update(
+              { categoryName: newName },
+              { where: { categoryName: oldName } }
+            );
+            if (updateInventoryRows === 0) {
+              console.log('Inventory rows Category Name is not updated or there is no row having that category name')
+            }
+            else {
+              console.log('Inventory rows Category Name is updated Successfully');
+            }
+          }
+          break;
+        case 'Warehouse':
+          await stores.destroy({ where: { storeName: names } });
+          break;
+        case 'Customer Warehouse':
+          await warehouse.destroy({ where: { name: names } });
+          break;
+        case 'Customer':
+          await client.destroy({ where: { name: names } });
+          break;
+        case 'OEM':
+          await oem.destroy({ where: { oemName: names } });
+          break;
+        case 'Installation Site':
+          await site.destroy({ where: { siteName: names } });
+          break;
+        default:
+          return res.status(400).json({ message: 'Invalid option' });
+      }
+
+      res.status(200).json({ message: 'Rows Updated successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.post('/update-asset-data', async (req, res) => {
+    try {
+      console.log("PAYLOAD:", req.body);
+      const { option, item } = req.body;
+      // const { option, newName, Id, address } = req.body;
+      // const{name:newName} = item;
+      // const{id:newName} = item;
+      // const{name:newName} = item;
+
+      if (!option || !item) {
+        return res.status(400).json({ message: 'Invalid request data' });
+      }
+
+      switch (option) {
+        case 'Category':
+          const catId = item.categoryId;
+          const newCatName = item.name;
+          const newhsn = item.hsnNumber;
+          const categoryData = await category.findOne({ where: { categoryId: catId } });
+          if (!categoryData) {
+            return res.status(404).json({ message: 'Category not found' });
+          }
+          const oldCategoryName = categoryData.name;
+          const oldCategoryHsn = categoryData.hsnNumber;
+          const updateCategoryRow = await category.update(
+            { name: newCatName, hsnNumber: newhsn },
+            { where: { categoryId: catId } }
+          );
+          if (updateCategoryRow[0] === 0) {
+            console.log('No category found with the given ID.');
+          } else {
+            const updateInventoryRows = await inventory.update(
+              { categoryName: newCatName, hsnNumber: newhsn },
+              { where: { categoryName: oldCategoryName, hsnNumber: oldCategoryHsn } }
+            );
+            if (updateInventoryRows[0] === 0) {
+              console.log('Inventory rows Category Name is not updated or there is no row having that category name');
+            } else {
+              console.log('Inventory rows Category Name is updated Successfully');
+            }
+          }
+          break;
+        case 'Warehouse'://Store
+        const storeID = item.storeId;
+
+        const newStoreName = item.storeName;
+        const newStoreAddress = item.address;
+          const warehouseData = await stores.findOne({ where: { storeId: storeID } });
+          if (!warehouseData) {
+            return res.status(404).json({ message: 'Warehouse not found' });
+          }
+          const oldWarehouseName = warehouseData.storeName;
+          const oldWarehouseAddress = warehouseData.address;
+          const updateCondition = { storeName: newStoreName }
+          if (newStoreAddress) {
+            updateCondition['address'] = newStoreAddress;
+          }
+          const updateWarehouseRow = await stores.update(
+            updateCondition,
+            { where: { storeId: storeID } }
+          );
+          if (updateWarehouseRow[0] === 0) {
+            console.log('No warehouse found with the given ID.');
+          } else {
+            const updateCondition = { inventoryStoreName: newStoreName }
+            if (newStoreAddress) {
+              updateCondition['storeLocation'] = newStoreAddress;
+            }
+            const updateInventoryRows = await inventory.update(
+              updateCondition,
+              { where: { inventoryStoreName: oldWarehouseName, storeLocation: oldWarehouseAddress } }
+            );
+            if (updateInventoryRows[0] === 0) {
+              console.log('Inventory rows Store Name is not updated or there is no row having that store name');
+            } else {
+              console.log('Inventory rows Store Name is updated Successfully');
+            }
+          }
+          break;
+        case 'Customer Warehouse'://Warehouse
+        const warehouseID = item.warehouseId;
+        const newWarehouseName = item.name;
+          const customerWarehouseData = await warehouse.findOne({ where: { warehouseId: warehouseID } });
+          if (!customerWarehouseData) {
+            return res.status(404).json({ message: 'Customer Warehouse not found' });
+          }
+          const oldCustomerWarehouseName = customerWarehouseData.name;
+          const updateCustomerWarehouseRow = await warehouse.update(
+            { name: newWarehouseName },
+            { where: { warehouseId: warehouseID } }
+          );
+          if (updateCustomerWarehouseRow[0] === 0) {
+            console.log('No customer warehouse found with the given ID.');
+          } else {
+            const updateInventoryRows = await inventory.update(
+              { clientWarehouse: newWarehouseName },
+              { where: { clientWarehouse: oldCustomerWarehouseName } }
+            );
+            if (updateInventoryRows[0] === 0) {
+              console.log('Inventory rows Warehouse Name is not updated or there is no row having that warehouse name');
+            } else {
+              console.log('Inventory rows Warehouse Name is updated Successfully');
+            }
+          }
+          break;
+        case 'Customer'://Client
+        const clientID = item.clientId;
+        const clientNewName = item.name;
+          const customerData = await client.findOne({ where: { clientId: clientID } });
+          if (!customerData) {
+            return res.status(404).json({ message: 'Customer not found' });
+          }
+          const oldCustomerName = customerData.name;
+          const updateCustomerRow = await client.update(
+            { name: clientNewName },
+            { where: { clientId: clientID } }
+          );
+          const updateCustomerWarehouserow = await warehouse.update(
+            { clientName: clientNewName },
+            { where: { clientName: oldCustomerName } }
+          );
+          if (updateCustomerRow[0] === 0) {
+            console.log('No customer found with the given ID.');
+          } else {
+            const updateInventoryRows = await inventory.update(
+              { client: clientNewName },
+              { where: { client: oldCustomerName } }
+            );
+            if (updateInventoryRows[0] === 0) {
+              console.log('Inventory rows Client Name is not updated or there is no row having that client name');
+            } else {
+              console.log('Inventory rows Client Name is updated Successfully');
+            }
+          }
+          break;
+        case 'OEM'://OEM
+          const oemId = item.oemId;
+          const oemNewName = item.oemName
+          const oemData = await oem.findOne({ where: { oemId: oemId } });
+          if (!oemData) {
+            return res.status(404).json({ message: 'OEM not found' });
+          }
+          const oldOemName = oemData.oemName;
+          const updateOemRow = await oem.update(
+            { oemName: oemNewName },
+            { where: { oemId: oemId } }
+          );
+          if (updateOemRow[0] === 0) {
+            console.log('No OEM found with the given ID.');
+          } else {
+            const updateInventoryRows = await inventory.update(
+              { oemName: oemNewName },
+              { where: { oemName: oldOemName } }
+            );
+            if (updateInventoryRows[0] === 0) {
+              console.log('Inventory rows OEM Name is not updated or there is no row having that OEM name');
+            } else {
+              console.log('Inventory rows OEM Name is updated Successfully');
+            }
+          }
+          break;
+        case 'Installation Site'://Site
+          const siteID = item.siteId;
+          const newSiteName = item.siteName;
+          const siteData = await site.findOne({ where: { siteId: siteID } });
+          if (!siteData) {
+            return res.status(404).json({ message: 'Installation Site not found' });
+          }
+          const oldSiteName = siteData.siteName;
+          const updateSiteRow = await site.update(
+            { siteName: newSiteName },
+            { where: { siteId: siteID } }
+          );
+          if (updateSiteRow[0] === 0) {
+            console.log('No installation site found with the given ID.');
+          } else {
+            const updateInventoryRows = await inventory.update(
+              { siteName: newSiteName },
+              { where: { siteName: oldSiteName } }
+            );
+            if (updateInventoryRows[0] === 0) {
+              console.log('Inventory rows Site Name is not updated or there is no row having that site name');
+            } else {
+              console.log('Inventory rows Site Name is updated Successfully');
+            }
+          }
+          break;
+        default:
+          return res.status(400).json({ message: 'Invalid option' });
+      }
+
+      res.status(200).json({ message: 'Rows updated successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
 
 
+  app.post('/purchaseId-dropdown', async (req, res) => {
+    try {
+      // Fetch distinct purchaseId and the corresponding oemName from inventory table
+      const oemAndPurchaseId = await inventory.findAll({
+        attributes: [
+          [Sequelize.fn('DISTINCT', Sequelize.col('purchaseId')), 'purchaseId'],
+          'oemName'
+        ],
+        raw: true
+      });
 
-
+      res.status(200).json(oemAndPurchaseId);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: 'Error fetching distinct purchase IDs and OEM names', error });
+    }
+  });
   app.use("/", apiRoutes);
 }

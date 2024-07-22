@@ -56,7 +56,7 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.STRING,
         },
         status: {
-            type: Sequelize.ENUM('RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED','RETURN TO OEM','RETURN TO SITE','SENT TO CLIENT WAREHOUSE','DELIVERED TO SITE'),
+            type: Sequelize.ENUM('RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED','RETURN TO OEM','RETURN TO SITE','SENT TO CUSTOMER WAREHOUSE','DELIVERED TO SITE'),
             allowNull: false,
             default: 'RECEIVED'
         },
@@ -107,6 +107,6 @@ module.exports = (sequelize, Sequelize) => {
     }, {
         timestamps: false,
     });
-    AssetInventory.sync({ alter: true });
+    AssetInventory.sync({ alter: false });
     return AssetInventory;
 }
