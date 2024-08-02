@@ -1783,6 +1783,10 @@ module.exports = function (app) {
             break;
           case 'Delivered':
             newStatus = "DELIVERED TO SITE";
+            break;
+          case 'Return under inspection':
+            newStatus = "RETURN UNDER INSPECTION";  
+            break;
           default:
             // Skip invalid actions
             continue;
@@ -1813,10 +1817,10 @@ module.exports = function (app) {
       const assets = await inventory.findAll({
         attributes: ['serialNumber', 'productName', 'warrantyStartDate', 'warrantyEndDate', 'siteName', 'status', 'oemName', 'hsnNumber'],
         where: {
-          status: ['IN STOCK', 'DELIVERED TO SITE', 'RETURN TO OEM', 'RETURN TO SITE', 'SCRAP', 'SENT TO CUSTOMER WAREHOUSE', 'REJECTED']
+          status: ['IN STOCK', 'DELIVERED TO SITE', 'RETURN TO OEM', 'RETURN TO SITE', 'SCRAP', 'SENT TO CUSTOMER WAREHOUSE', 'REJECTED','RETURN UNDER INSPECTION']
         }
       });
-      console.log(assets);
+      // console.log(assets);
 
       const formattedAssets = assets.map(asset => ({
         serialNumber: asset.serialNumber,
