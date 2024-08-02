@@ -395,38 +395,31 @@ module.exports = function (app) {
   //for multiple oems
   app.post('/asset-oem', async (req, res) => {
     try {
-
       const { data } = req.body;
       console.log("data", data);
       const getNewOemId = async () => {
         const maxOem = await oem.max('oemId');
         return maxOem ? maxOem + 1 : 1000;
       };
-
-
       for (const o of data) {
-        const { oem: oemName } = o;
+        const { name: oemName,address } = o;
         if (!oemName) {
           return res.status(400).json({ "message": "Oem name must not be empty" })
         }
-
         // Check if email already exists
         const existingOem = await oem.findOne({ where: { oemName } });
         if (existingOem) {
           return res.status(400).json({ message: `OEM Name ${oemName} already exists` });
         }
-
         // Get new oemId
         const newOemId = await getNewOemId();
-
         // Create new OEM
         const newOem = await oem.create({
           oemId: newOemId,
-          oemName
+          oemName,
+          address
         });
-
       }
-
       res.status(201).json({ "message": "Successfully Created" });
     } catch (error) {
       res.status(500).json({ message: 'Error creating OEMs', error });
@@ -437,10 +430,9 @@ module.exports = function (app) {
   app.post('/asset-oems-dropdown', async (req, res) => {
     try {
       const oems = await oem.findAll({
-        attributes: ['oemId', 'oemName'],
+        attributes: ['oemId', 'oemName','address'],
         order: [['oemName', 'ASC']]
       });
-
       res.status(200).json(oems);
     } catch (error) {
       res.status(500).json({ message: 'Error fetching OEMs', error });
@@ -597,39 +589,32 @@ module.exports = function (app) {
     try {
       const { data } = req.body;
       console.log(req.body);
-
       // Function to generate new siteId
       const getNewSiteId = async () => {
         const maxSite = await site.max('siteId');
         return maxSite ? maxSite + 1 : 1000;
       };
-
       const newSites = [];
-
       for (const s of data) {
-        const { site: siteName } = s;
+        const { name: siteName,address } = s;
         if (!siteName) {
           return res.status(400).json({ "message": "Site name must not be empty" })
         }
-
         // Check if siteName already exists
         const existingSite = await site.findOne({ where: { siteName } });
         if (existingSite) {
           return res.status(400).json({ message: `Site name ${siteName} already exists` });
         }
-
         // Get new siteId
         const newSiteId = await getNewSiteId();
-
         // Create new site
         const newSite = await site.create({
           siteId: newSiteId,
-          siteName
+          siteName,
+          address
         });
-
         newSites.push(newSite);
       }
-
       res.status(201).json(newSites);
     } catch (error) {
       res.status(500).json({ message: 'Error creating sites', error });
@@ -663,10 +648,9 @@ module.exports = function (app) {
   app.post('/asset-sites-dropdown', async (req, res) => {
     try {
       const sites = await site.findAll({
-        attributes: ['siteId', 'siteName'],
+        attributes: ['siteId', 'siteName','address'],
         order: [['siteName', 'ASC']]
       });
-
       res.status(200).json(sites);
     } catch (error) {
       res.status(500).json({ message: 'Error fetching sites', error });
@@ -1360,13 +1344,11 @@ module.exports = function (app) {
         attributes: ['purchaseId', 'oemName', 'purchaseDate'],
         raw: true
       });
-
       // Fetch inventory data
       const inventoryData = await inventory.findAll({
         attributes: ['purchaseId', 'categoryName', 'productName', 'status', 'challanNumber'],
         raw: true
       });
-
       // Create a lookup table for purchase data
       const purchaseLookup = {};
       purchaseData.forEach(purchase => {
@@ -1377,7 +1359,6 @@ module.exports = function (app) {
           challanData: {}
         };
       });
-
       // Group inventory data by challanNumber
       inventoryData.forEach(item => {
         const { purchaseId, challanNumber, categoryName, productName, status } = item;
@@ -1388,10 +1369,10 @@ module.exports = function (app) {
             productName: '',
             totalItems: 0,
             usableItems: 0,
-            nonUsableItems: 0
+            nonUsableItems: 0,
+            underQAReview: 0 // Initialize underQAReview
           };
         }
-
         const challanGroup = purchaseLookup[purchaseId].challanData[challanNumber];
         challanGroup.totalItems++;
         if (status === "IN STOCK") {
@@ -1400,10 +1381,12 @@ module.exports = function (app) {
         if (status === "FAILED" || status === "REJECTED" || status === "FAULTY") {
           challanGroup.nonUsableItems++;
         }
+        if (status === "RECEIVED") {
+          challanGroup.underQAReview++; // Increment underQAReview for "RECEIVED" status
+        }
         challanGroup.productName = productName;
         challanGroup.categoryName = categoryName;
       });
-
       // Flatten the lookup table into the required format
       const result = [];
       Object.values(purchaseLookup).forEach(purchase => {
@@ -1417,11 +1400,11 @@ module.exports = function (app) {
             productName: challan.productName,
             totalItems: challan.totalItems,
             usableItems: challan.usableItems,
-            nonUsableItems: challan.nonUsableItems
+            nonUsableItems: challan.nonUsableItems,
+            underQAReview: challan.underQAReview // Include underQAReview in the response
           });
         });
       });
-
       res.status(200).json({ purchaseData: result });
     } catch (error) {
       console.log(error);
@@ -2096,11 +2079,9 @@ module.exports = function (app) {
       // const{name:newName} = item;
       // const{id:newName} = item;
       // const{name:newName} = item;
-
       if (!option || !item) {
         return res.status(400).json({ message: 'Invalid request data' });
       }
-
       switch (option) {
         case 'Category':
           const catId = item.categoryId;
@@ -2132,7 +2113,6 @@ module.exports = function (app) {
           break;
         case 'Warehouse'://Store
         const storeID = item.storeId;
-
         const newStoreName = item.storeName;
         const newStoreAddress = item.address;
           const warehouseData = await stores.findOne({ where: { storeId: storeID } });
@@ -2225,6 +2205,7 @@ module.exports = function (app) {
           break;
         case 'OEM'://OEM
           const oemId = item.oemId;
+          const oemAddress = item.address
           const oemNewName = item.oemName
           const oemData = await oem.findOne({ where: { oemId: oemId } });
           if (!oemData) {
@@ -2232,7 +2213,7 @@ module.exports = function (app) {
           }
           const oldOemName = oemData.oemName;
           const updateOemRow = await oem.update(
-            { oemName: oemNewName },
+            { oemName: oemNewName,address:oemAddress },
             { where: { oemId: oemId } }
           );
           if (updateOemRow[0] === 0) {
@@ -2242,15 +2223,25 @@ module.exports = function (app) {
               { oemName: oemNewName },
               { where: { oemName: oldOemName } }
             );
+            const updatePurchaseTable = await purchase.update(
+              {oemName:oemNewName},
+              {where:{oemName: oldOemName}}
+            )
             if (updateInventoryRows[0] === 0) {
               console.log('Inventory rows OEM Name is not updated or there is no row having that OEM name');
             } else {
               console.log('Inventory rows OEM Name is updated Successfully');
             }
+            if (updatePurchaseTable[0] === 0) {
+              console.log('Purchase rows OEM Name is not updated or there is no row having that OEM name');
+            } else {
+              console.log('Purchase rows OEM Name is updated Successfully');
+            }
           }
           break;
         case 'Installation Site'://Site
           const siteID = item.siteId;
+          const siteAddress = item.address;
           const newSiteName = item.siteName;
           const siteData = await site.findOne({ where: { siteId: siteID } });
           if (!siteData) {
@@ -2258,7 +2249,7 @@ module.exports = function (app) {
           }
           const oldSiteName = siteData.siteName;
           const updateSiteRow = await site.update(
-            { siteName: newSiteName },
+            { siteName: newSiteName ,address:siteAddress},
             { where: { siteId: siteID } }
           );
           if (updateSiteRow[0] === 0) {
@@ -2278,7 +2269,6 @@ module.exports = function (app) {
         default:
           return res.status(400).json({ message: 'Invalid option' });
       }
-
       res.status(200).json({ message: 'Rows updated successfully' });
     } catch (error) {
       console.error(error);
