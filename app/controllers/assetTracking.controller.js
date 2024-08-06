@@ -2298,5 +2298,7 @@ module.exports = function (app) {
       res.status(500).json({ message: 'Error fetching distinct purchase IDs and OEM names', error });
     }
   });
+
+  
   app.use("/", apiRoutes);
 }
