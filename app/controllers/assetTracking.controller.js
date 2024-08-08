@@ -1793,7 +1793,7 @@ module.exports = function (app) {
         }
         console.log("new Status", newStatus);
 
-        // Update the asset status using Sequelize's update method
+        // Update the asset status
         await inventory.update(
           { status: newStatus },
           {
@@ -1815,12 +1815,12 @@ module.exports = function (app) {
     try {
       // console.log("HIT.......................");
       const assets = await inventory.findAll({
-        attributes: ['serialNumber', 'productName', 'warrantyStartDate', 'warrantyEndDate', 'siteName', 'status', 'oemName', 'hsnNumber'],
+        attributes: ['serialNumber', 'productName', 'warrantyStartDate', 'warrantyEndDate', 'siteName', 'status', 'oemName', 'hsnNumber', 'client', 'clientWarehouse'],
         where: {
           status: ['IN STOCK', 'DELIVERED TO SITE', 'RETURN TO OEM', 'RETURN TO SITE', 'SCRAP', 'SENT TO CUSTOMER WAREHOUSE', 'REJECTED','RETURN UNDER INSPECTION']
         }
       });
-      // console.log(assets);
+      console.log(assets);
 
       const formattedAssets = assets.map(asset => ({
         serialNumber: asset.serialNumber,
@@ -1829,7 +1829,9 @@ module.exports = function (app) {
         warrantyEndDate: asset.warrantyEndDate ? asset.warrantyEndDate.toISOString().split('T')[0] : null,
         siteName: asset.siteName,
         status: asset.status,
-        hsnNumber: asset.hsnNumber
+        hsnNumber: asset.hsnNumber,
+        client: asset.client,
+        clientWarehouse: asset.clientWarehouse
       }));
 
       res.json(formattedAssets);
