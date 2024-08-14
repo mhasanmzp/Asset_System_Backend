@@ -14,6 +14,12 @@ module.exports = (sequelize, Sequelize) => {
     },
     clientName:{
       type:Sequelize.STRING
+    },
+    gstNo: {
+      type: Sequelize.STRING,
+    },
+    panNo: {
+      type: Sequelize.STRING,
     }
 
   }, {

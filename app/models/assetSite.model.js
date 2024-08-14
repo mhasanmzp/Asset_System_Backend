@@ -21,6 +21,12 @@ module.exports = (sequelize, Sequelize) => {
         },
         address: {
           type: Sequelize.STRING,
+        },
+        gstNo: {
+          type: Sequelize.STRING,
+        },
+        panNo: {
+          type: Sequelize.STRING,
         }
   }, {
     timestamps: false,

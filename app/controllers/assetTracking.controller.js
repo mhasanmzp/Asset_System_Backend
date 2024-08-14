@@ -430,7 +430,7 @@ module.exports = function (app) {
   app.post('/asset-oems-dropdown', async (req, res) => {
     try {
       const oems = await oem.findAll({
-        attributes: ['oemId', 'oemName','address'],
+        attributes: ['oemId', 'oemName','address', 'panNo', 'gstNo'],
         order: [['oemName', 'ASC']]
       });
       res.status(200).json(oems);
@@ -1960,7 +1960,6 @@ module.exports = function (app) {
     }
   });
 
-
   // API to retrieve all AssetClient entries
   app.post('/asset-client-dropdown', async (req, res) => {
     try {
@@ -1995,8 +1994,7 @@ module.exports = function (app) {
       res.status(500).send(error);
     }
   });
-
-  app.post('/getChallanNumByPurchaseId', async (req, res) => {
+   app.post('/getChallanNumByPurchaseId', async (req, res) => {
     try {
       const { purchaseId } = req.body; // Destructure purchaseId from req.body
       if (!purchaseId) {
@@ -2213,13 +2211,16 @@ module.exports = function (app) {
           const oemId = item.oemId;
           const oemAddress = item.address
           const oemNewName = item.oemName
+          const oemPanNo=item.panNo
+          const oemGstNo=item.gstNo
+
           const oemData = await oem.findOne({ where: { oemId: oemId } });
           if (!oemData) {
             return res.status(404).json({ message: 'OEM not found' });
           }
           const oldOemName = oemData.oemName;
           const updateOemRow = await oem.update(
-            { oemName: oemNewName,address:oemAddress },
+            { oemName: oemNewName,address:oemAddress, panNo: oemPanNo, gstNo: oemGstNo },
             { where: { oemId: oemId } }
           );
           if (updateOemRow[0] === 0) {

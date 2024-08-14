@@ -21,10 +21,16 @@ module.exports = (sequelize, Sequelize) => {
     },
     address: {
       type: Sequelize.STRING,
+    },
+    gstNo: {
+      type: Sequelize.STRING,
+    },
+    panNo: {
+      type: Sequelize.STRING,
     }
   }, {
     timestamps: false,
   });
-  AssetOem.sync({ alter: true });
+  AssetOem.sync({alter: true});
   return AssetOem;
 }
