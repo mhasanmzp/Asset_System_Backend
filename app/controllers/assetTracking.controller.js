@@ -648,7 +648,7 @@ module.exports = function (app) {
   app.post('/asset-sites-dropdown', async (req, res) => {
     try {
       const sites = await site.findAll({
-        attributes: ['siteId', 'siteName','address'],
+        attributes: ['siteId', 'siteName','address', 'panNo', 'gstNo'],
         order: [['siteName', 'ASC']]
       });
       res.status(200).json(sites);
@@ -2250,13 +2250,16 @@ module.exports = function (app) {
           const siteID = item.siteId;
           const siteAddress = item.address;
           const newSiteName = item.siteName;
+          const installationSitePanNo=item.panNo
+          const installationGstNo=item.gstNo
+
           const siteData = await site.findOne({ where: { siteId: siteID } });
           if (!siteData) {
             return res.status(404).json({ message: 'Installation Site not found' });
           }
           const oldSiteName = siteData.siteName;
           const updateSiteRow = await site.update(
-            { siteName: newSiteName ,address:siteAddress},
+            { siteName: newSiteName ,address:siteAddress, panNo: installationSitePanNo, gstNo: installationGstNo},
             { where: { siteId: siteID } }
           );
           if (updateSiteRow[0] === 0) {
