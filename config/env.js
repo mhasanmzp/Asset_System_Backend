@@ -1,7 +1,7 @@
 const env = {
   database: 'hrportal',
   username: 'root',
-  password: '1234',
+  password: 'aman7860',
   port: 3306,
   host: 'localhost',
   dialect: 'mysql',
