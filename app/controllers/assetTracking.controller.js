@@ -402,7 +402,7 @@ module.exports = function (app) {
         return maxOem ? maxOem + 1 : 1000;
       };
       for (const o of data) {
-        const { name: oemName,address } = o;
+        const { name: oemName, address, gstNo, panNo } = o;
         if (!oemName) {
           return res.status(400).json({ "message": "Oem name must not be empty" })
         }
@@ -417,7 +417,9 @@ module.exports = function (app) {
         const newOem = await oem.create({
           oemId: newOemId,
           oemName,
-          address
+          address,
+          gstNo,
+          panNo
         });
       }
       res.status(201).json({ "message": "Successfully Created" });
@@ -596,7 +598,7 @@ module.exports = function (app) {
       };
       const newSites = [];
       for (const s of data) {
-        const { name: siteName,address } = s;
+        const { name: siteName,address, gstNo, panNo } = s;
         if (!siteName) {
           return res.status(400).json({ "message": "Site name must not be empty" })
         }
@@ -611,7 +613,9 @@ module.exports = function (app) {
         const newSite = await site.create({
           siteId: newSiteId,
           siteName,
-          address
+          address,
+          gstNo,
+          panNo
         });
         newSites.push(newSite);
       }
@@ -1978,52 +1982,105 @@ module.exports = function (app) {
 
 
   // API to store multiple AssetWarehouse entries
+  // app.post('/asset-warehouse', async (req, res) => {
+  //   try {
+  //     const { data } = req.body;
+  //     console.log(req.body);
+
+  //     // Function to generate new id
+  //     const getNewId = async () => {
+  //       const maxId = await warehouse.max('warehouseId');
+  //       return maxId ? maxId + 1 : 1000;
+  //     };
+
+  //     const newWarehouses = [];
+
+  //     for (const w of data) {
+  //       const { warehouse: name, client: clientName } = w;
+  //       if (!name) {
+  //         return res.status(400).json({ "message": "Warehouse Name must not be empty" })
+  //       }
+
+  //       // Check if name already exists
+  //       const existingWarehouse = await warehouse.findOne({ where: { name } });
+  //       if (existingWarehouse) {
+  //         return res.status(400).json({ message: `Warehouse name ${name} already exists` });
+  //       }
+  //       if (!name) {
+  //         return res.status(400).json({ message: `Warehouse name should not be Empty` });
+  //       }
+
+  //       // Get new id
+  //       const newId = await getNewId();
+
+  //       // Create new warehouse
+  //       const newWarehouse = await warehouse.create({
+  //         warehouseId: newId,
+  //         name,
+  //         clientName,
+  //         gstNo,
+  //         panNo
+  //       });
+
+  //       newWarehouses.push(newWarehouse);
+  //     }
+
+  //     res.status(201).json(newWarehouses);
+  //   } catch (error) {
+  //     res.status(500).json({ message: 'Error creating warehouses', error });
+  //   }
+  // });
+
   app.post('/asset-warehouse', async (req, res) => {
     try {
       const { data } = req.body;
       console.log(req.body);
-
+  
       // Function to generate new id
       const getNewId = async () => {
         const maxId = await warehouse.max('warehouseId');
         return maxId ? maxId + 1 : 1000;
       };
-
+  
       const newWarehouses = [];
-
+  
       for (const w of data) {
-        const { warehouse: name, client: clientName } = w;
-        if (!name) {
-          return res.status(400).json({ "message": "Warehouse Name must not be empty" })
+        const { name: clientName, address: name, gstNo, panNo } = w;
+  
+        // Validate that name and address are not empty
+        if (!clientName || !name) {
+          return res.status(400).json({ message: "Client Name and Warehouse Address must not be empty" });
         }
-
-        // Check if name already exists
+  
+        // Check if a warehouse with the same address (stored in name) already exists
         const existingWarehouse = await warehouse.findOne({ where: { name } });
         if (existingWarehouse) {
-          return res.status(400).json({ message: `Warehouse name ${name} already exists` });
+          return res.status(400).json({ message: `Warehouse address ${name} already exists` });
         }
-        if (!name) {
-          return res.status(400).json({ message: `Warehouse name should not be Empty` });
-        }
-
-        // Get new id
+  
+        // Get new warehouseId
         const newId = await getNewId();
-
-        // Create new warehouse
+  
+        // Create new warehouse entry
         const newWarehouse = await warehouse.create({
           warehouseId: newId,
-          name,
-          clientName
+          name,           // Address is being stored in the "name" column
+          clientName,     // Client name is being stored in the "clientName" column
+          gstNo,
+          panNo
         });
-
+  
         newWarehouses.push(newWarehouse);
       }
-
+  
+      // Respond with the newly created warehouses
       res.status(201).json(newWarehouses);
     } catch (error) {
+      console.error('Error creating warehouses:', error);
       res.status(500).json({ message: 'Error creating warehouses', error });
     }
   });
+  
 
   // API to retrieve all AssetClient entries
   app.post('/asset-client-dropdown', async (req, res) => {
