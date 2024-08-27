@@ -273,7 +273,7 @@ module.exports = function (app) {
 
       for (const engData of data) {
         console.log("engData", engData);
-        const name = engData.engineer; // Extract the name value
+        const name = engData.name; // Extract the name value
 
         // Get new engineerId
         const newEngineerId = await getNewEngineerId();
@@ -1510,10 +1510,10 @@ module.exports = function (app) {
   app.post('/update-testing-data', async (req, res) => {
     try {
       console.log(req.body);
-      const { items, employeeId } = req.body;
-      const empInfo = await Employees.findOne({ where: { employeeId }, attributes: ['firstName', 'middleName', 'lastName'] });
-      // console.log(empInfo);
-      const engineerName = `${empInfo.firstName} ${empInfo.middleName} ${empInfo.lastName}`
+      const { items, engineerName } = req.body;
+      // const empInfo = await Employees.findOne({ where: { employeeId }, attributes: ['firstName', 'middleName', 'lastName'] });
+      // // console.log(empInfo);
+      // const engineerName = `${empInfo.firstName} ${empInfo.middleName} ${empInfo.lastName}`
       // console.log(engineerName);
 
       // Loop through each item and update the asset
@@ -1534,6 +1534,7 @@ module.exports = function (app) {
           if (asset) {
             // Determine the new status based on the test result
             const newStatus = testResult === 'FAIL' ? 'REJECTED' : 'IN STOCK';
+
 
             // Update the asset
             await inventory.update(
@@ -2400,6 +2401,29 @@ module.exports = function (app) {
             }
           }
           break;
+          case 'Engineer':
+        const engineerId = item.engineerId;
+        const engineerNewName = item.name;
+        const engineerData = await engineer.findOne({ where: { engineerId: engineerId } });
+        if (!engineerData) {
+          return res.status(404).json({ message: 'Engineer not found' });
+        }
+        const oldEngineerName = engineerData.name;
+        const updateEngineerRow = await engineer.update(
+          { name: engineerNewName },
+          { where: { engineerId: engineerId } }
+        );
+        if (updateEngineerRow[0] !== 0) {
+          // await tasks.update(
+          //   { engineerName: engineerNewName },
+          //   { where: { engineerName: oldEngineerName, permissionName: permissionName } }
+          // );
+          await inventory.update(
+            { engineerName: engineerNewName },
+            { where: { engineerName: oldEngineerName } }
+          );
+        }
+        break;
         default:
           return res.status(400).json({ message: 'Invalid option' });
       }
@@ -2429,6 +2453,55 @@ module.exports = function (app) {
     }
   });
 
+  app.post('/replacement-product-list', async (req, res) => {
+    try {
+      const assets = await inventory.findAll({
+        attributes: [
+          'serialNumber', 
+          'productName', 
+          'warrantyStartDate', 
+          'warrantyEndDate', 
+          'siteName', 
+          'status', 
+          'oemName', 
+          'hsnNumber', 
+          'client', 
+          'clientWarehouse',
+          'purchaseId',
+          'challanNumber',
+          'faultyRemark'
+        ],
+        where: {
+          status: 'RETURN TO OEM'  // Updated condition to fetch only assets with this status
+        }
+      });
+  
+      console.log(assets);
+  
+      // Format the results to avoid timezone issues with dates
+      const formattedAssets = assets.map(asset => ({
+        serialNumber: asset.serialNumber,
+        productName: asset.productName,
+        warrantyStartDate: asset.warrantyStartDate ? asset.warrantyStartDate.toISOString().split('T')[0] : null,
+        warrantyEndDate: asset.warrantyEndDate ? asset.warrantyEndDate.toISOString().split('T')[0] : null,
+        siteName: asset.siteName,
+        status: asset.status,
+        hsnNumber: asset.hsnNumber,
+        client: asset.client,
+        clientWarehouse: asset.clientWarehouse,
+        purchaseOrder: asset.purchaseId,
+        challanNo: asset.challanNumber,
+        remarks: asset.faultyRemark
+      }));
+  
+      res.json(formattedAssets);
+    } catch (error) {
+      res.status(500).send({
+        message: error.message || "Some error occurred while retrieving assets."
+      });
+    }
+  });
+  
   
   app.use("/", apiRoutes);
 }
