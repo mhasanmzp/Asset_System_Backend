@@ -1612,30 +1612,72 @@ module.exports = function (app) {
     }
   });
 
+  // app.post('/update-delivery-data-s1', async (req, res) => {
+  //   console.log(req.body);
+  //   const { deliveryDetails } = req.body;
+  //   const { selectedClient: client } = req.body;
+  //   const { selectedWarehouse: clientWarehouse } = req.body;
+  //   const status = "SENT TO CUSTOMER WAREHOUSE"
+  //   const { items } = deliveryDetails;
+
+  //   if (!items || !Array.isArray(items) || items.length === 0) {
+  //     return res.status(400).json({ error: 'Invalid product data' });
+  //   }
+
+  //   try {
+  //     const deliveryDate = new Date();
+
+  //     for (const item of items) {
+  //       const { serialNumbers, productName } = item;
+  //       const serialNumber = serialNumbers[0];
+
+  //       if (!serialNumber || !productName) {
+  //         return res.status(400).json({ error: 'Invalid product data format' });
+  //       }
+
+  //       const updated = await inventory.update(
+  //         { client, clientWarehouse, deliveryDate, status },
+  //         {
+  //           where: {
+  //             serialNumber,
+  //             productName
+  //           }
+  //         }
+  //       );
+  //     }
+
+  //     res.status(200).json({ "message": "Data Delivered Successfully" });
+
+  //   } catch (error) {
+  //     console.error('Error updating inventory:', error);
+  //     res.status(500).json({ error: 'An error occurred while updating inventory items' });
+  //   }
+  // });
+
   app.post('/update-delivery-data-s1', async (req, res) => {
     console.log(req.body);
     const { deliveryDetails } = req.body;
     const { selectedClient: client } = req.body;
     const { selectedWarehouse: clientWarehouse } = req.body;
-    const status = "SENT TO CUSTOMER WAREHOUSE"
+    const status = "SENT TO CUSTOMER WAREHOUSE";
     const { items } = deliveryDetails;
-
+  
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Invalid product data' });
     }
-
+  
     try {
       const deliveryDate = new Date();
-
+  
       for (const item of items) {
         const { serialNumbers, productName } = item;
         const serialNumber = serialNumbers[0];
-
+  
         if (!serialNumber || !productName) {
           return res.status(400).json({ error: 'Invalid product data format' });
         }
-
-        const updated = await inventory.update(
+  
+        await inventory.update(
           { client, clientWarehouse, deliveryDate, status },
           {
             where: {
@@ -1645,14 +1687,32 @@ module.exports = function (app) {
           }
         );
       }
-
+  
+      // Update replacementProductSelections status
+      const replacementProducts = req.body.replacementProductSelections || [];
+      const filteredProducts = replacementProducts.filter(product => product && product.serialNumber);
+  
+      if (filteredProducts.length > 0) {
+        for (const product of filteredProducts) {
+          await inventory.update(
+            { status: 'REPLACED' },
+            {
+              where: {
+                serialNumber: product.serialNumber
+              }
+            }
+          );
+        }
+      }
+  
       res.status(200).json({ "message": "Data Delivered Successfully" });
-
+  
     } catch (error) {
       console.error('Error updating inventory:', error);
       res.status(500).json({ error: 'An error occurred while updating inventory items' });
     }
   });
+  
 
   app.post('/update-delivery-data-s2', async (req, res) => {
     console.log(req.body);
@@ -1732,7 +1792,7 @@ module.exports = function (app) {
         attributes: ['categoryName', 'oemName', 'productName', 'siteName', 'serialNumber', 'status', 'warrantyStartDate', 'warrantyEndDate', 'deliveryDate', 'client', 'clientWarehouse', 'engineerName', 'faultyRemark'],
         where: {
           status: {
-            [Sequelize.Op.in]: ['RECEIVED', 'IN USE', 'FAULTY', 'SCRAP', 'IN STOCK', 'REJECTED', 'DELIVERED', 'RETURN TO OEM', 'RETURN TO SITE', 'SENT TO CUSTOMER WAREHOUSE', 'DELIVERED TO SITE']  // Example values
+            [Sequelize.Op.in]: ['RECEIVED', 'IN USE', 'FAULTY', 'SCRAP', 'IN STOCK', 'REJECTED', 'DELIVERED', 'RETURN TO OEM', 'RETURN TO SITE', 'SENT TO CUSTOMER WAREHOUSE', 'DELIVERED TO SITE', 'REPLACED']  // Example values
           }
         }
 

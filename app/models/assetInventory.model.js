@@ -56,7 +56,7 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.STRING,
         },
         status: {
-            type: Sequelize.ENUM('RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED','RETURN TO OEM','RETURN TO SITE','RETURN UNDER INSPECTION','SENT TO CUSTOMER WAREHOUSE','DELIVERED TO SITE'),
+            type: Sequelize.ENUM('RECEIVED', 'IN USE','FAULTY', 'SCRAP','IN STOCK','REJECTED','DELIVERED','RETURN TO OEM','RETURN TO SITE','RETURN UNDER INSPECTION','SENT TO CUSTOMER WAREHOUSE','DELIVERED TO SITE','REPLACED'),
             allowNull: false,
             default: 'RECEIVED'
         },
