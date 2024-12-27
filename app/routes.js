@@ -27,4 +27,6 @@ require('./controllers/bpmn')(app)
 require('./controllers/appraisal')(app)
 require('./controllers/assetTracking.controller')(app)
 require('./controllers/openPositions.controller')(app)
+require('./controllers/weeklyTarget.controller')(app)
+
 };

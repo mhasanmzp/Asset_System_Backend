@@ -1,16 +1,20 @@
 const env = require('./env.js');
 const Sequelize = require('sequelize');
-const sequelize = new Sequelize(env.database, env.username, env.password, {
-  host: env.host,
-  dialect: env.dialect,
-  logging: false,
-  operatorsAliases: 0,
-  pool: {
-    max: env.max,
-    min: env.pool.min,
-    acquire: env.pool.acquire,
-    idle: env.pool.idle
-  }
+// const sequelize = new Sequelize(env.database, env.username, env.password, {
+//   host: env.host,
+//   dialect: env.dialect,
+//   logging: false,
+//   operatorsAliases: 0,
+//   pool: {
+//     max: env.max,
+//     min: env.pool.min,
+//     acquire: env.pool.acquire,
+//     idle: env.pool.idle
+//   }
+// });
+const sequelize = new Sequelize("hrportal", "root", "root", {
+  host: "localhost",
+  dialect: "mysql",
 });
 sequelize.authenticate()
   .then(() => {
@@ -96,4 +100,7 @@ db.AssetPurchase = require('../app/models/assetPurchase.model.js')(sequelize, Se
 db.AssetSite = require('../app/models/assetSite.model.js')(sequelize, Sequelize);
 db.AssetStore = require('../app/models/assetStore.model.js')(sequelize, Sequelize);
 // db.AssetWarranty = require('../app/models/assetWarranty.model.js')(sequelize, Sequelize);
+db.weeklyTarget = require('../app/models/weeklyTarget.model.js')(sequelize, Sequelize);
+db.weeklyActual = require('../app/models/weeklyActual.model.js')(sequelize, Sequelize);
+
 module.exports = db;
